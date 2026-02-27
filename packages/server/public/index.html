@@ -1,0 +1,1200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ZenNami — Find Your Frequency</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,200;0,300;0,400;1,200;1,300;1,400&family=DM+Mono:wght@300;400&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --deep:   #0f1410;
+  --moss:   #2d3b2e;
+  --sage:   #4a6741;
+  --mist:   #c8d5c0;
+  --cream:  #f0ead8;
+  --amber:  #c9a96e;
+  --fog:    #8fa888;
+  --glass:  rgba(45,59,46,0.15);
+  --border: rgba(143,168,136,0.12);
+}
+
+html { scroll-behavior: smooth; }
+
+/* Cursor — dot snaps, ring lags behind */
+.cursor-dot {
+  position: fixed;
+  width: 6px; height: 6px;
+  background: var(--amber);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 9999;
+  transform: translate(-50%, -50%);
+  mix-blend-mode: screen;
+}
+.cursor-ring {
+  position: fixed;
+  width: 32px; height: 32px;
+  border: 1px solid rgba(201,169,110,0.35);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 9998;
+  transform: translate(-50%, -50%);
+  transition: width 0.25s, height 0.25s, border-color 0.25s;
+}
+
+body {
+  background: var(--deep);
+  color: var(--cream);
+  font-family: 'Cormorant Garamond', serif;
+  overflow-x: hidden;
+  cursor: none;
+}
+
+
+
+/* Noise grain */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  opacity: 0.035;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 180px;
+}
+
+/* ── NAV ── */
+nav {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 100;
+  padding: 24px 48px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: linear-gradient(to bottom, rgba(15,20,16,0.9), transparent);
+  backdrop-filter: blur(2px);
+}
+.nav-logo {
+  font-family: 'Instrument Serif', serif;
+  font-size: 22px;
+  font-style: italic;
+  color: var(--cream);
+  letter-spacing: 0.02em;
+}
+.nav-logo span { color: var(--amber); }
+.nav-links {
+  display: flex;
+  gap: 40px;
+  list-style: none;
+}
+.nav-links a {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--fog);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+.nav-links a:hover { color: var(--amber); }
+.nav-cta {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--deep);
+  background: var(--amber);
+  border: none;
+  padding: 10px 20px;
+  border-radius: 2px;
+  cursor: none;
+  transition: opacity 0.2s, transform 0.2s;
+}
+.nav-cta:hover { opacity: 0.85; transform: translateY(-1px); }
+
+/* ── HERO ── */
+.hero {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  padding: 120px 48px 80px;
+  text-align: center;
+}
+
+.hero-bg {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 70% 50% at 50% 30%, rgba(74,103,65,0.2) 0%, transparent 60%),
+    radial-gradient(ellipse 40% 40% at 20% 80%, rgba(45,59,46,0.3) 0%, transparent 50%),
+    radial-gradient(ellipse 50% 40% at 80% 70%, rgba(201,169,110,0.06) 0%, transparent 50%);
+}
+
+/* Floating orbs in hero */
+.orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(60px);
+  pointer-events: none;
+}
+.orb-1 { width: 400px; height: 400px; background: rgba(74,103,65,0.15); top: 10%; left: 60%; animation: drift 12s ease-in-out infinite; }
+.orb-2 { width: 300px; height: 300px; background: rgba(201,169,110,0.08); top: 50%; left: 10%; animation: drift 16s ease-in-out infinite reverse; }
+.orb-3 { width: 200px; height: 200px; background: rgba(143,168,136,0.1); top: 70%; left: 70%; animation: drift 10s ease-in-out infinite 3s; }
+
+@keyframes drift {
+  0%, 100% { transform: translate(0, 0); }
+  33%       { transform: translate(30px, -20px); }
+  66%       { transform: translate(-20px, 30px); }
+}
+
+.hero-eyebrow {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.35em;
+  text-transform: uppercase;
+  color: var(--amber);
+  margin-bottom: 24px;
+  opacity: 0;
+  animation: fade-up 1s 0.2s forwards;
+}
+.hero-title {
+  font-family: 'Instrument Serif', serif;
+  font-size: clamp(56px, 9vw, 120px);
+  font-weight: 400;
+  line-height: 0.9;
+  color: var(--cream);
+  margin-bottom: 32px;
+  opacity: 0;
+  animation: fade-up 1s 0.4s forwards;
+}
+.hero-title em {
+  font-style: italic;
+  color: var(--amber);
+  display: block;
+}
+.hero-sub {
+  font-size: clamp(16px, 2vw, 22px);
+  font-weight: 300;
+  color: var(--fog);
+  max-width: 560px;
+  line-height: 1.6;
+  margin-bottom: 48px;
+  opacity: 0;
+  animation: fade-up 1s 0.6s forwards;
+}
+.hero-actions {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  opacity: 0;
+  animation: fade-up 1s 0.8s forwards;
+}
+.btn-primary {
+  background: var(--amber);
+  color: var(--deep);
+  border: none;
+  padding: 14px 32px;
+  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  cursor: none;
+  border-radius: 2px;
+  transition: all 0.25s;
+  text-decoration: none;
+  display: inline-block;
+}
+.btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(201,169,110,0.3); }
+.btn-ghost {
+  background: transparent;
+  color: var(--mist);
+  border: 1px solid var(--border);
+  padding: 14px 32px;
+  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  cursor: none;
+  border-radius: 2px;
+  transition: all 0.25s;
+  text-decoration: none;
+  display: inline-block;
+}
+.btn-ghost:hover { border-color: rgba(201,169,110,0.4); color: var(--amber); transform: translateY(-2px); }
+
+/* Live now ticker */
+.live-ticker {
+  position: absolute;
+  bottom: 40px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 20px;
+  border: 1px solid var(--border);
+  border-radius: 40px;
+  background: var(--glass);
+  backdrop-filter: blur(10px);
+  opacity: 0;
+  animation: fade-up 1s 1.2s forwards;
+  white-space: nowrap;
+}
+.live-dot {
+  width: 6px; height: 6px;
+  background: #e05555;
+  border-radius: 50%;
+  box-shadow: 0 0 8px #e05555;
+  animation: pulse-dot 1.5s ease-in-out infinite;
+}
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.4; transform: scale(0.7); }
+}
+.live-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--fog);
+}
+.live-track {
+  font-size: 13px;
+  font-style: italic;
+  color: var(--cream);
+}
+.live-waveform {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 16px;
+}
+.live-bar {
+  width: 2px;
+  background: var(--amber);
+  border-radius: 1px;
+  animation: wave-small var(--s) var(--d) ease-in-out infinite alternate;
+}
+@keyframes wave-small {
+  from { height: 3px; }
+  to   { height: var(--h); }
+}
+
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── PLAYER SECTION ── */
+.section {
+  padding: 120px 48px;
+  position: relative;
+}
+.section-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.35em;
+  text-transform: uppercase;
+  color: var(--amber);
+  margin-bottom: 16px;
+}
+.section-title {
+  font-family: 'Instrument Serif', serif;
+  font-size: clamp(36px, 5vw, 64px);
+  font-weight: 400;
+  line-height: 1.05;
+  margin-bottom: 20px;
+}
+.section-title em { font-style: italic; color: var(--amber); }
+.section-sub {
+  font-size: 18px;
+  font-weight: 300;
+  color: var(--fog);
+  max-width: 480px;
+  line-height: 1.7;
+}
+
+/* Radio stations grid */
+.stations-section {
+  padding: 120px 48px;
+  background: linear-gradient(to bottom, transparent, rgba(45,59,46,0.08), transparent);
+}
+.stations-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+  margin-top: 56px;
+}
+.station-card {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 20px;
+  background: var(--glass);
+  backdrop-filter: blur(10px);
+  cursor: none;
+  transition: all 0.3s;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.station-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(74,103,65,0.1), transparent);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.station-card:hover { border-color: rgba(201,169,110,0.25); transform: translateY(-2px); box-shadow: 0 12px 40px rgba(0,0,0,0.3); }
+.station-card:hover::before { opacity: 1; }
+
+.station-avatar {
+  width: 48px; height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  flex-shrink: 0;
+  border: 1px solid var(--border);
+}
+.station-info { flex: 1; overflow: hidden; }
+.station-name {
+  font-size: 15px;
+  font-style: italic;
+  color: var(--cream);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 3px;
+}
+.station-meta {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: var(--fog);
+  letter-spacing: 0.1em;
+}
+.station-play {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--fog);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: none;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+.station-card:hover .station-play {
+  border-color: var(--amber);
+  color: var(--amber);
+  background: rgba(201,169,110,0.1);
+}
+.station-playing .station-play {
+  border-color: var(--amber);
+  color: var(--amber);
+  background: rgba(201,169,110,0.15);
+}
+.station-playing .station-name { color: var(--amber); }
+
+/* ── AI MOOD ── */
+.ai-section {
+  padding: 120px 48px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 80px;
+  align-items: center;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+.ai-input-wrapper {
+  position: relative;
+}
+.ai-prompt-box {
+  width: 100%;
+  background: rgba(26,35,24,0.8);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 24px;
+  color: var(--cream);
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 18px;
+  font-style: italic;
+  resize: none;
+  height: 140px;
+  outline: none;
+  transition: border-color 0.3s;
+  line-height: 1.6;
+}
+.ai-prompt-box::placeholder { color: var(--fog); opacity: 0.6; }
+.ai-prompt-box:focus { border-color: rgba(201,169,110,0.35); }
+.ai-submit {
+  position: absolute;
+  bottom: 16px;
+  right: 16px;
+  background: var(--amber);
+  color: var(--deep);
+  border: none;
+  padding: 8px 18px;
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  border-radius: 4px;
+  cursor: none;
+  transition: all 0.2s;
+}
+.ai-submit:hover { transform: scale(1.03); }
+
+.mood-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+}
+.mood-chip {
+  padding: 6px 14px;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--fog);
+  cursor: none;
+  transition: all 0.2s;
+  background: transparent;
+}
+.mood-chip:hover, .mood-chip.active {
+  border-color: rgba(201,169,110,0.4);
+  color: var(--amber);
+  background: rgba(201,169,110,0.08);
+}
+
+/* AI Result */
+.ai-result {
+  border: 1px solid rgba(201,169,110,0.2);
+  border-radius: 12px;
+  padding: 24px;
+  background: rgba(201,169,110,0.04);
+  margin-top: 16px;
+  display: none;
+}
+.ai-result.visible { display: block; animation: fade-up 0.5s forwards; }
+.ai-result-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--amber);
+  margin-bottom: 8px;
+}
+.ai-result-text {
+  font-size: 16px;
+  font-style: italic;
+  color: var(--mist);
+  line-height: 1.6;
+}
+
+/* ── AMBIENT CONTROLS ── */
+.ambient-section {
+  padding: 120px 48px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+.ambient-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px;
+  margin-top: 56px;
+}
+.ambient-card {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 24px 20px;
+  background: var(--glass);
+  text-align: center;
+  cursor: none;
+  transition: all 0.3s;
+  position: relative;
+}
+.ambient-card:hover { border-color: rgba(201,169,110,0.2); transform: translateY(-3px); }
+.ambient-card.active { border-color: rgba(201,169,110,0.4); background: rgba(201,169,110,0.06); }
+.ambient-icon { font-size: 32px; margin-bottom: 12px; display: block; }
+.ambient-name {
+  font-size: 15px;
+  font-style: italic;
+  color: var(--cream);
+  margin-bottom: 16px;
+}
+.ambient-slider-wrapper {
+  position: relative;
+  height: 3px;
+  background: rgba(143,168,136,0.2);
+  border-radius: 2px;
+  cursor: none;
+}
+.ambient-fill {
+  position: absolute;
+  left: 0; top: 0; height: 100%;
+  background: linear-gradient(to right, var(--sage), var(--amber));
+  border-radius: 2px;
+  transition: width 0.1s;
+}
+.ambient-vol {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: var(--fog);
+  margin-top: 8px;
+  letter-spacing: 0.1em;
+}
+
+/* ── FAVORITES ── */
+.favorites-section {
+  padding: 120px 48px;
+  background: linear-gradient(to bottom, transparent, rgba(45,59,46,0.06), transparent);
+}
+.fav-list {
+  margin-top: 56px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-width: 800px;
+}
+.fav-item {
+  display: flex;
+  align-items: center;
+  padding: 16px 20px;
+  border-radius: 8px;
+  gap: 16px;
+  cursor: none;
+  transition: background 0.15s;
+  border: 1px solid transparent;
+}
+.fav-item:hover { background: var(--glass); border-color: var(--border); }
+.fav-num {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  color: var(--fog);
+  width: 20px;
+  text-align: right;
+  flex-shrink: 0;
+}
+.fav-item:hover .fav-num { color: var(--amber); }
+.fav-emoji { font-size: 24px; flex-shrink: 0; }
+.fav-info { flex: 1; }
+.fav-name { font-size: 17px; font-style: italic; color: var(--cream); margin-bottom: 2px; }
+.fav-detail { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--fog); letter-spacing: 0.1em; }
+.fav-heart {
+  background: none;
+  border: none;
+  font-size: 16px;
+  cursor: none;
+  color: var(--amber);
+  opacity: 0.7;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+.fav-item:hover .fav-heart { opacity: 1; transform: scale(1.2); }
+
+/* ── DONATION ── */
+.donation-section {
+  padding: 120px 48px;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+.donation-header {
+  text-align: center;
+  margin-bottom: 64px;
+}
+.donation-tiers {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+.tier-card {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 36px 28px;
+  background: var(--glass);
+  text-align: center;
+  position: relative;
+  transition: all 0.3s;
+  cursor: none;
+}
+.tier-card:hover { transform: translateY(-4px); border-color: rgba(201,169,110,0.2); box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
+.tier-card.featured {
+  border-color: rgba(201,169,110,0.35);
+  background: rgba(201,169,110,0.05);
+}
+.tier-badge {
+  position: absolute;
+  top: -12px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--amber);
+  color: var(--deep);
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  padding: 4px 12px;
+  border-radius: 20px;
+}
+.tier-icon { font-size: 36px; margin-bottom: 16px; display: block; }
+.tier-name {
+  font-family: 'Instrument Serif', serif;
+  font-size: 24px;
+  font-style: italic;
+  color: var(--cream);
+  margin-bottom: 8px;
+}
+.tier-price {
+  font-family: 'DM Mono', monospace;
+  font-size: 32px;
+  color: var(--amber);
+  margin-bottom: 4px;
+}
+.tier-period {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: var(--fog);
+  letter-spacing: 0.15em;
+  margin-bottom: 28px;
+}
+.tier-features {
+  list-style: none;
+  margin-bottom: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.tier-features li {
+  font-size: 14px;
+  color: var(--mist);
+  font-style: italic;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: center;
+}
+.tier-features li::before { content: '·'; color: var(--amber); font-size: 20px; }
+.tier-btn {
+  width: 100%;
+  padding: 12px;
+  border-radius: 6px;
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  cursor: none;
+  transition: all 0.2s;
+}
+.tier-btn-outline { background: transparent; border: 1px solid var(--border); color: var(--fog); }
+.tier-btn-outline:hover { border-color: rgba(201,169,110,0.4); color: var(--amber); }
+.tier-btn-filled { background: var(--amber); border: none; color: var(--deep); }
+.tier-btn-filled:hover { opacity: 0.9; transform: translateY(-1px); }
+
+/* Humble bundle style slider */
+.donation-custom {
+  margin-top: 40px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 32px;
+  background: var(--glass);
+  text-align: center;
+}
+.donation-custom-title {
+  font-size: 20px;
+  font-style: italic;
+  color: var(--mist);
+  margin-bottom: 24px;
+}
+.donation-amount-display {
+  font-family: 'DM Mono', monospace;
+  font-size: 48px;
+  color: var(--amber);
+  margin-bottom: 24px;
+}
+.donation-range {
+  width: 100%;
+  -webkit-appearance: none;
+  height: 3px;
+  background: rgba(143,168,136,0.2);
+  border-radius: 2px;
+  outline: none;
+  margin-bottom: 16px;
+  cursor: none;
+}
+.donation-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 18px; height: 18px;
+  background: var(--amber);
+  border-radius: 50%;
+  box-shadow: 0 0 10px rgba(201,169,110,0.4);
+  cursor: none;
+}
+.donation-split {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  margin-top: 24px;
+}
+.split-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.split-icon { font-size: 20px; }
+.split-label { font-family: 'DM Mono', monospace; font-size: 9px; color: var(--fog); letter-spacing: 0.15em; text-transform: uppercase; }
+.split-pct { font-family: 'DM Mono', monospace; font-size: 14px; color: var(--cream); }
+
+/* ── FOOTER ── */
+footer {
+  padding: 64px 48px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 24px;
+}
+.footer-logo {
+  font-family: 'Instrument Serif', serif;
+  font-size: 20px;
+  font-style: italic;
+  color: var(--cream);
+}
+.footer-logo span { color: var(--amber); }
+.footer-links {
+  display: flex;
+  gap: 32px;
+  list-style: none;
+}
+.footer-links a {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--fog);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+.footer-links a:hover { color: var(--amber); }
+.footer-copy {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: var(--fog);
+  letter-spacing: 0.1em;
+}
+
+/* ── DIVIDER ── */
+.divider {
+  width: 100%;
+  height: 1px;
+  background: linear-gradient(to right, transparent, var(--border), transparent);
+  margin: 0 48px;
+  width: calc(100% - 96px);
+}
+
+/* Scroll reveal */
+.reveal {
+  opacity: 0;
+  transform: translateY(32px);
+  transition: opacity 0.8s ease, transform 0.8s ease;
+}
+.reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+</style>
+</head>
+<body>
+
+<!-- Cursor -->
+<div class="cursor-dot" id="cursorDot"></div>
+<div class="cursor-ring" id="cursorRing"></div>
+
+<!-- Nav -->
+<nav>
+  <div class="nav-logo">Zen<span>Nami</span></div>
+  <ul class="nav-links">
+    <li><a href="#stations">Stations</a></li>
+    <li><a href="#ambient">Ambient</a></li>
+    <li><a href="#mood">AI Mood</a></li>
+    <li><a href="#support">Support</a></li>
+  </ul>
+  <button class="nav-cta">Get Extension</button>
+</nav>
+
+<!-- Hero -->
+<section class="hero">
+  <div class="hero-bg"></div>
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <div class="orb orb-3"></div>
+
+  <p class="hero-eyebrow">Online Radio · Ambient Sound · AI Curation</p>
+  <h1 class="hero-title">
+    Find Your<br><em>Frequency</em>
+  </h1>
+  <p class="hero-sub">A browser extension that tunes your mind. Stream lo-fi radio, layer ambient sounds, and let AI set the perfect mood for deep work.</p>
+  <div class="hero-actions">
+    <a href="#" class="btn-primary">Add to Browser — Free</a>
+    <a href="#stations" class="btn-ghost">Browse Stations</a>
+  </div>
+
+  <div class="live-ticker">
+    <div class="live-dot"></div>
+    <span class="live-label">Live</span>
+    <span class="live-track">morning fog ritual — stillwater collective</span>
+    <div class="live-waveform" id="heroWave"></div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- Stations -->
+<section class="stations-section" id="stations">
+  <div style="max-width:1200px;margin:0 auto">
+    <div class="reveal">
+      <p class="section-label">Curated Radio</p>
+      <h2 class="section-title">Hand-picked <em>stations</em><br>for every state of mind</h2>
+    </div>
+    <div class="stations-grid reveal" id="stationsGrid"></div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- AI Mood -->
+<section id="mood">
+  <div class="ai-section">
+    <div class="reveal">
+      <p class="section-label">AI Curation</p>
+      <h2 class="section-title">Describe your<br><em>mood</em></h2>
+      <p class="section-sub">Tell ZenNami how you feel or what you're working on. Our AI will find the perfect sonic environment for you.</p>
+    </div>
+    <div class="reveal">
+      <div class="ai-input-wrapper">
+        <textarea class="ai-prompt-box" id="moodInput" placeholder="I'm trying to focus on a complex coding problem, feeling a bit scattered and need something to help me enter a flow state…"></textarea>
+        <button class="ai-submit" onclick="submitMood()">Set Mood →</button>
+      </div>
+      <div class="mood-chips" id="moodChips"></div>
+      <div class="ai-result" id="aiResult">
+        <p class="ai-result-label">AI Recommendation</p>
+        <p class="ai-result-text" id="aiResultText"></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- Ambient -->
+<section class="ambient-section" id="ambient">
+  <div class="reveal">
+    <p class="section-label">Ambient Layers</p>
+    <h2 class="section-title">Layer <em>textures</em><br>beneath the music</h2>
+    <p class="section-sub">Mix environmental sounds with your radio stream to create your perfect sonic space.</p>
+  </div>
+  <div class="ambient-grid reveal" id="ambientGrid"></div>
+</section>
+
+<div class="divider"></div>
+
+<!-- Favorites -->
+<section class="favorites-section" id="favorites">
+  <div style="max-width:1200px;margin:0 auto">
+    <div class="reveal">
+      <p class="section-label">Your Collection</p>
+      <h2 class="section-title">Saved <em>stations</em></h2>
+    </div>
+    <div class="fav-list reveal" id="favList"></div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- Donation -->
+<section class="donation-section" id="support">
+  <div class="donation-header reveal">
+    <p class="section-label">Support ZenNami</p>
+    <h2 class="section-title" style="text-align:center">Keep the <em>waves</em> flowing</h2>
+    <p class="section-sub" style="margin:0 auto;text-align:center">ZenNami is free forever. If it brings you peace, consider supporting the project.</p>
+  </div>
+
+  <div class="donation-tiers reveal">
+    <div class="tier-card">
+      <span class="tier-icon">🌿</span>
+      <div class="tier-name">Seedling</div>
+      <div class="tier-price">$3</div>
+      <div class="tier-period">one time</div>
+      <ul class="tier-features">
+        <li>Ad-free forever</li>
+        <li>Support indie dev</li>
+        <li>Warm fuzzy feeling</li>
+      </ul>
+      <button class="tier-btn tier-btn-outline">Support</button>
+    </div>
+    <div class="tier-card featured">
+      <div class="tier-badge">Most Loved</div>
+      <span class="tier-icon">🌸</span>
+      <div class="tier-name">Blossom</div>
+      <div class="tier-price">$8</div>
+      <div class="tier-period">per month</div>
+      <ul class="tier-features">
+        <li>Everything in Seedling</li>
+        <li>Unlimited favorites</li>
+        <li>Early access features</li>
+        <li>Discord community</li>
+      </ul>
+      <button class="tier-btn tier-btn-filled">Subscribe</button>
+    </div>
+    <div class="tier-card">
+      <span class="tier-icon">🌳</span>
+      <div class="tier-name">Grove</div>
+      <div class="tier-price">$24</div>
+      <div class="tier-period">per year</div>
+      <ul class="tier-features">
+        <li>Everything in Blossom</li>
+        <li>Custom ambient mixes</li>
+        <li>AI mood history</li>
+        <li>Name in credits</li>
+      </ul>
+      <button class="tier-btn tier-btn-outline">Support</button>
+    </div>
+  </div>
+
+  <!-- Custom amount -->
+  <div class="donation-custom reveal">
+    <p class="donation-custom-title">Or choose your own amount</p>
+    <div class="donation-amount-display" id="donationDisplay">$12</div>
+    <input type="range" class="donation-range" id="donationRange" min="1" max="100" value="12">
+    <p style="font-family:'DM Mono',monospace;font-size:10px;color:var(--fog);letter-spacing:0.15em;text-transform:uppercase;margin-bottom:24px">Drag to set amount</p>
+    <div class="donation-split">
+      <div class="split-item">
+        <span class="split-icon">👨‍💻</span>
+        <span class="split-pct" id="devPct">60%</span>
+        <span class="split-label">Developer</span>
+      </div>
+      <div class="split-item">
+        <span class="split-icon">📻</span>
+        <span class="split-pct">30%</span>
+        <span class="split-label">Radio Stations</span>
+      </div>
+      <div class="split-item">
+        <span class="split-icon">🌱</span>
+        <span class="split-pct">10%</span>
+        <span class="split-label">Plant a Tree</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer>
+  <div class="footer-logo">Zen<span>Nami</span></div>
+  <ul class="footer-links">
+    <li><a href="#">Privacy</a></li>
+    <li><a href="#">Terms</a></li>
+    <li><a href="#">GitHub</a></li>
+    <li><a href="#">Contact</a></li>
+  </ul>
+  <p class="footer-copy">© 2025 ZenNami. Made with 禅.</p>
+</footer>
+
+<script>
+// ── Cursor — dot snaps, ring lags ──
+const dot = document.getElementById('cursorDot');
+const ring = document.getElementById('cursorRing');
+let mx = 0, my = 0, rx = 0, ry = 0;
+
+document.addEventListener('mousemove', e => {
+  mx = e.clientX;
+  my = e.clientY;
+  dot.style.left = mx + 'px';
+  dot.style.top  = my + 'px';
+});
+
+function animRing() {
+  rx += (mx - rx) * 0.12;
+  ry += (my - ry) * 0.12;
+  ring.style.left = rx + 'px';
+  ring.style.top  = ry + 'px';
+  requestAnimationFrame(animRing);
+}
+animRing();
+
+document.querySelectorAll('button, a, input, textarea, .station-card, .ambient-card, .fav-item, .tier-card').forEach(el => {
+  el.addEventListener('mouseenter', () => { ring.style.width = '44px'; ring.style.height = '44px'; ring.style.borderColor = 'rgba(201,169,110,0.6)'; });
+  el.addEventListener('mouseleave', () => { ring.style.width = '32px'; ring.style.height = '32px'; ring.style.borderColor = 'rgba(201,169,110,0.35)'; });
+});
+
+// ── Hero waveform ──
+const heroWave = document.getElementById('heroWave');
+for (let i = 0; i < 12; i++) {
+  const b = document.createElement('div');
+  b.className = 'live-bar';
+  const h = 4 + Math.random() * 10;
+  b.style.cssText = `--h:${h}px;--s:${0.5+Math.random()}s;--d:${Math.random()*0.8}s;height:3px`;
+  heroWave.appendChild(b);
+}
+
+// ── Stations ──
+const stations = [
+  { name: 'morning fog ritual', genre: 'lo-fi · ambient', emoji: '🌿', playing: true },
+  { name: 'tokyo study hall', genre: 'lo-fi · japanese', emoji: '🏮' },
+  { name: 'deep forest radio', genre: 'ambient · nature', emoji: '🌲' },
+  { name: 'café saint-germain', genre: 'jazz · bossa nova', emoji: '☕' },
+  { name: 'void.fm', genre: 'dark ambient · drone', emoji: '🌑' },
+  { name: 'poolside fm', genre: 'chillout · synth', emoji: '🌊' },
+  { name: 'rain on cedar', genre: 'lo-fi · rain', emoji: '🌧️' },
+  { name: 'late night programming', genre: 'chillhop · beats', emoji: '💻' },
+];
+const grid = document.getElementById('stationsGrid');
+stations.forEach(s => {
+  const el = document.createElement('div');
+  el.className = 'station-card' + (s.playing ? ' station-playing' : '');
+  el.innerHTML = `
+    <div class="station-avatar">${s.emoji}</div>
+    <div class="station-info">
+      <div class="station-name">${s.name}</div>
+      <div class="station-meta">${s.genre}</div>
+    </div>
+    <button class="station-play">
+      ${s.playing
+        ? '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14l11-7-11-7z"/></svg>'
+        : '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>'
+      }
+    </button>`;
+  el.addEventListener('click', () => {
+    document.querySelectorAll('.station-card').forEach(c => c.classList.remove('station-playing'));
+    el.classList.add('station-playing');
+  });
+  grid.appendChild(el);
+});
+
+// ── Mood chips ──
+const moods = ['deep focus', 'morning energy', 'creative flow', 'wind down', 'meditation', 'study session'];
+const chipsEl = document.getElementById('moodChips');
+moods.forEach(m => {
+  const b = document.createElement('button');
+  b.className = 'mood-chip';
+  b.textContent = m;
+  b.addEventListener('click', () => {
+    chipsEl.querySelectorAll('.mood-chip').forEach(c => c.classList.remove('active'));
+    b.classList.add('active');
+    document.getElementById('moodInput').value = `I'm looking for music to help with ${m}...`;
+  });
+  chipsEl.appendChild(b);
+});
+
+const aiResponses = {
+  default: "I'm sensing you need something grounding and focused. I recommend Tokyo Study Hall with light rain layered underneath — 60 BPM beats to match a focused cognitive state, rain for sensory shielding.",
+  focus: "For deep focus, I'm tuning you to Void.fm with subtle brown noise. The absence of melodic hooks prevents distraction while maintaining alertness.",
+  creative: "Creative flow calls for something with harmonic surprise. Café Saint-Germain's jazz progressions will keep your right brain engaged without overwhelming the left.",
+};
+
+function submitMood() {
+  const input = document.getElementById('moodInput').value;
+  const result = document.getElementById('aiResult');
+  const text = document.getElementById('aiResultText');
+  const lower = input.toLowerCase();
+  let response = aiResponses.default;
+  if (lower.includes('focus') || lower.includes('code') || lower.includes('work')) response = aiResponses.focus;
+  if (lower.includes('creative') || lower.includes('art') || lower.includes('write')) response = aiResponses.creative;
+  text.textContent = response;
+  result.classList.add('visible');
+}
+
+// ── Ambient ──
+const ambients = [
+  { name: 'rain on glass', emoji: '🌧️', vol: 65 },
+  { name: 'forest at dawn', emoji: '🌲', vol: 40 },
+  { name: 'café ambience', emoji: '☕', vol: 30 },
+  { name: 'ocean waves', emoji: '🌊', vol: 0 },
+  { name: 'crackling fire', emoji: '🔥', vol: 50 },
+  { name: 'night crickets', emoji: '🌙', vol: 0 },
+  { name: 'brown noise', emoji: '🎵', vol: 20 },
+  { name: 'tibetan bowls', emoji: '🔔', vol: 0 },
+];
+const ambGrid = document.getElementById('ambientGrid');
+ambients.forEach(a => {
+  const el = document.createElement('div');
+  el.className = 'ambient-card' + (a.vol > 0 ? ' active' : '');
+  el.innerHTML = `
+    <span class="ambient-icon">${a.emoji}</span>
+    <div class="ambient-name">${a.name}</div>
+    <div class="ambient-slider-wrapper" id="slider-${a.name.replace(/\s/g,'')}">
+      <div class="ambient-fill" style="width:${a.vol}%"></div>
+    </div>
+    <div class="ambient-vol">${a.vol > 0 ? a.vol + '%' : 'off'}</div>`;
+  let dragging = false;
+  const wrapper = el.querySelector('.ambient-slider-wrapper');
+  const fill = el.querySelector('.ambient-fill');
+  const vol = el.querySelector('.ambient-vol');
+  const updateVol = (e) => {
+    const rect = wrapper.getBoundingClientRect();
+    const pct = Math.max(0, Math.min(100, Math.round((e.clientX - rect.left) / rect.width * 100)));
+    fill.style.width = pct + '%';
+    vol.textContent = pct > 0 ? pct + '%' : 'off';
+    el.classList.toggle('active', pct > 0);
+  };
+  wrapper.addEventListener('mousedown', e => { dragging = true; updateVol(e); });
+  document.addEventListener('mousemove', e => { if (dragging) updateVol(e); });
+  document.addEventListener('mouseup', () => { dragging = false; });
+  ambGrid.appendChild(el);
+});
+
+// ── Favorites ──
+const favs = [
+  { name: 'morning fog ritual', detail: 'stillwater collective · 3:47', emoji: '🌿' },
+  { name: 'kyoto afternoon', detail: 'hana music · 5:01', emoji: '🏮' },
+  { name: 'rain on cedar', detail: 'ambient bloom · 4:12', emoji: '🌧️' },
+  { name: 'café saint-germain', detail: 'jazz radio · live', emoji: '☕' },
+  { name: 'deep focus IV', detail: 'ambient bloom · 6:20', emoji: '🌑' },
+];
+const favList = document.getElementById('favList');
+favs.forEach((f, i) => {
+  const el = document.createElement('div');
+  el.className = 'fav-item';
+  el.innerHTML = `
+    <span class="fav-num">${i+1}</span>
+    <span class="fav-emoji">${f.emoji}</span>
+    <div class="fav-info">
+      <div class="fav-name">${f.name}</div>
+      <div class="fav-detail">${f.detail}</div>
+    </div>
+    <button class="fav-heart">♥</button>`;
+  favList.appendChild(el);
+});
+
+// ── Donation slider ──
+const range = document.getElementById('donationRange');
+const display = document.getElementById('donationDisplay');
+range.addEventListener('input', () => {
+  display.textContent = '$' + range.value;
+});
+
+// ── Scroll reveal ──
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+}, { threshold: 0.1 });
+document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+</script>
+</body>
+</html>
