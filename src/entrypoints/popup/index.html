@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Zen Nami</title>
+    <meta name="manifest.type" content="browser_action" />
+    <style>
+    /* Critical CSS inlined — painted before any JS loads */
+    html, body, #root {
+      background: #1a2318;
+      margin: 0;
+      width: 360px;
+      height: 560px;
+      overflow: hidden;
+    }
+  </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="./main.tsx"></script>
+  </body>
+</html>

@@ -1,0 +1,94 @@
+@import url("https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=DM+Mono:wght@300;400&display=swap");
+@import "tailwindcss";
+
+@theme {
+  --color-moss: #2d3b2e;
+  --color-sage: #4a6741;
+  --color-mist: #c8d5c0;
+  --color-cream: #f0ead8;
+  --color-warm: #e8dfc8;
+  --color-amber: #c9a96e;
+  --color-fog: #8fa888;
+  --color-deep: #1a2318;
+
+  --font-display: "Cormorant Garamond", serif;
+  --font-mono: "DM Mono", monospace;
+}
+
+/* Keyframe animations — too complex for Tailwind utilities */
+@keyframes pulse-dot {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(0.7);
+  }
+}
+@keyframes spin-slow {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes orb-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+    box-shadow:
+      0 0 40px rgba(74, 103, 65, 0.3),
+      0 0 80px rgba(74, 103, 65, 0.1),
+      inset 0 0 30px rgba(0, 0, 0, 0.5);
+  }
+  50% {
+    transform: scale(1.03);
+    box-shadow:
+      0 0 55px rgba(74, 103, 65, 0.4),
+      0 0 100px rgba(74, 103, 65, 0.15),
+      inset 0 0 30px rgba(0, 0, 0, 0.5);
+  }
+}
+@keyframes wave {
+  from {
+    height: var(--min-h);
+  }
+  to {
+    height: var(--max-h);
+  }
+}
+@keyframes float-up {
+  0% {
+    opacity: 0;
+    transform: translateY(0) translateX(0) scale(1);
+  }
+  20% {
+    opacity: 0.4;
+  }
+  80% {
+    opacity: 0.2;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-120px) translateX(var(--drift)) scale(0.5);
+  }
+}
+
+.animate-pulse-dot {
+  animation: pulse-dot 2.5s ease-in-out infinite;
+}
+.animate-spin-slow {
+  animation: spin-slow 20s linear infinite;
+}
+.animate-orb-breathe {
+  animation: orb-breathe 4s ease-in-out infinite;
+}
+.animate-float-up {
+  animation: float-up var(--dur) var(--delay) ease-in-out infinite;
+}
+.animate-wave {
+  animation: wave var(--spd) var(--dly) ease-in-out infinite alternate;
+}
