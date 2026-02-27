@@ -1,4 +1,4 @@
-import { ZenPlayer } from '@/components/zen-player';
+import { ZenPlayer } from '@zennami/shared/index';
 
 function App() {
   return <ZenPlayer />;

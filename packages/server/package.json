@@ -1,0 +1,22 @@
+{
+  "name": "@zennami/server",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "deploy": "pnpm build && wrangler deploy",
+    "cf-typegen": "wrangler types --env-interface CloudflareBindings"
+  },
+  "dependencies": {
+    "@zennami/shared": "workspace:*",
+    "hono": "^4.12.3"
+  },
+  "devDependencies": {
+    "@cloudflare/vite-plugin": "^1.25.6",
+    "vite": "^7.3.1",
+    "vite-ssr-components": "^0.5.2",
+    "wrangler": "^4.69.0"
+  }
+}

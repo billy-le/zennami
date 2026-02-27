@@ -1,30 +1,16 @@
 {
-  "name": "Zen Nami",
-  "description": "A browser extension that curates lofi hip hop, jazz, ambient, and productivity radio stations — always on, always free.",
+  "name": "@zennami",
   "private": true,
-  "version": "0.0.1",
   "type": "module",
   "scripts": {
-    "dev": "wxt",
-    "dev:firefox": "wxt -b firefox",
-    "build": "wxt build",
-    "build:firefox": "wxt build -b firefox",
-    "zip": "wxt zip",
-    "zip:firefox": "wxt zip -b firefox",
-    "compile": "tsc --noEmit",
-    "postinstall": "wxt prepare"
-  },
-  "dependencies": {
-    "react": "^19.2.4",
-    "react-dom": "^19.2.4"
+    "dev": "pnpm --filter @zennami/extension dev",
+    "dev:server": "pnpm --filter @zennami/server dev",
+    "dev:all": "concurrently \"pnpm dev\" \"pnpm dev:server\"",
+    "build": "pnpm --filter @zennami/extension build",
+    "release": "pnpm --filter @zennami/extension zip"
   },
   "devDependencies": {
-    "@tailwindcss/vite": "^4.2.1",
-    "@types/react": "^19.2.13",
-    "@types/react-dom": "^19.2.3",
-    "@wxt-dev/module-react": "^1.1.5",
-    "tailwindcss": "^4.2.1",
-    "typescript": "^5.9.3",
-    "wxt": "^0.20.18"
+    "concurrently": "^9.x",
+    "typescript": "^5.9.3"
   }
 }

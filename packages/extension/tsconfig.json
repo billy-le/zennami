@@ -1,0 +1,13 @@
+{
+  "extends": ["../../tsconfig.json", "./.wxt/tsconfig.json"],
+  "compilerOptions": {
+    "types": ["vite/client"],
+    "jsx": "react-jsx",
+    "lib": ["DOM", "DOM.iterable"],
+    "paths": {
+      "@/*": ["./src/*"],
+      "@zennami/shared": ["../shared/src/index.ts"],
+      "@zennami/shared/*": ["../shared/src/*"]
+    }
+  }
+}

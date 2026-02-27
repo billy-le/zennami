@@ -1,7 +1,14 @@
 {
-  "extends": "./.wxt/tsconfig.json",
   "compilerOptions": {
-    "allowImportingTsExtensions": true,
-    "jsx": "react-jsx" 
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "strict": true,
+    "skipLibCheck": true,
+    "lib": ["ESNext"],
+     "paths": {
+      "@zennami/shared": ["./packages/shared/src/index.ts"],
+      "@zennami/shared/*": ["./packages/shared/src/*"]
+    }
   }
 }
