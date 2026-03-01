@@ -16,7 +16,11 @@
   --font-mono: "DM Mono", monospace;
 }
 
-/* Keyframe animations — too complex for Tailwind utilities */
+/* ─── Keyframes ─────────────────────────────────────────────────────────────
+   All animations use ONLY transform + opacity — compositor-only properties
+   that run on the GPU thread and never trigger layout or paint.
+   ─────────────────────────────────────────────────────────────────────────── */
+
 @keyframes pulse-dot {
   0%,
   100% {
@@ -28,6 +32,7 @@
     transform: scale(0.7);
   }
 }
+
 @keyframes spin-slow {
   from {
     transform: rotate(0deg);
@@ -36,31 +41,53 @@
     transform: rotate(360deg);
   }
 }
+
+/**
+ * orb-breathe: was animating box-shadow (forces repaint every frame).
+ * Now only animates transform — the glow is handled by .orb-glow::after
+ * which animates opacity instead (see below).
+ */
 @keyframes orb-breathe {
   0%,
   100% {
     transform: scale(1);
-    box-shadow:
-      0 0 40px rgba(74, 103, 65, 0.3),
-      0 0 80px rgba(74, 103, 65, 0.1),
-      inset 0 0 30px rgba(0, 0, 0, 0.5);
   }
   50% {
     transform: scale(1.03);
-    box-shadow:
-      0 0 55px rgba(74, 103, 65, 0.4),
-      0 0 100px rgba(74, 103, 65, 0.15),
-      inset 0 0 30px rgba(0, 0, 0, 0.5);
   }
 }
+
+/**
+ * orb-glow-pulse: replaces the box-shadow animation in orb-breathe.
+ * Animating opacity on a pseudo-element is GPU-composited and paint-free.
+ */
+@keyframes orb-glow-pulse {
+  0%,
+  100% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/**
+ * wave: was animating height (triggers layout reflow on ALL 40 bars per frame).
+ * Now uses scaleY with transform-origin: bottom — identical visual result,
+ * zero layout cost. The element's height is static; only the scale changes.
+ */
 @keyframes wave {
   from {
-    height: var(--min-h);
+    transform: scaleY(var(--min-scale));
   }
   to {
-    height: var(--max-h);
+    transform: scaleY(var(--max-scale));
   }
 }
+
+/**
+ * float-up: was already using transform + opacity — kept as-is.
+ */
 @keyframes float-up {
   0% {
     opacity: 0;
@@ -78,18 +105,64 @@
   }
 }
 
+/* ─── Animation utility classes ─────────────────────────────────────────── */
+
 .animate-pulse-dot {
+  will-change: transform, opacity;
   animation: pulse-dot 2.5s ease-in-out infinite;
 }
+
 .animate-spin-slow {
+  will-change: transform;
   animation: spin-slow 20s linear infinite;
 }
+
+/**
+ * Orb: the element itself only scales. The glow lives on ::after so
+ * its opacity can be animated without repainting the orb itself.
+ * Add class "orb-glow" alongside "animate-orb-breathe" on the orb element.
+ */
 .animate-orb-breathe {
+  will-change: transform;
   animation: orb-breathe 4s ease-in-out infinite;
 }
-.animate-float-up {
-  animation: float-up var(--dur) var(--delay) ease-in-out infinite;
+
+.orb-glow {
+  position: relative;
+  /* Static box-shadow — rendered once, never repainted */
+  box-shadow:
+    0 0 40px rgba(74, 103, 65, 0.3),
+    0 0 80px rgba(74, 103, 65, 0.1),
+    inset 0 0 30px rgba(0, 0, 0, 0.5);
 }
+
+.orb-glow::after {
+  content: "";
+  position: absolute;
+  inset: -20px;
+  border-radius: inherit;
+  /* Full-intensity glow on the pseudo-element; opacity animates it */
+  box-shadow:
+    0 0 55px rgba(74, 103, 65, 0.4),
+    0 0 100px rgba(74, 103, 65, 0.15);
+  will-change: opacity;
+  animation: orb-glow-pulse 4s ease-in-out infinite;
+  pointer-events: none;
+}
+
+/**
+ * wave bars: transform-origin bottom so bars grow upward.
+ * will-change promotes each bar to its own compositing layer.
+ * With 40 bars this is intentional — scaleY on composited layers
+ * is far cheaper than height-driven reflow on un-promoted elements.
+ */
 .animate-wave {
+  will-change: transform;
+  transform-origin: bottom center;
   animation: wave var(--spd) var(--dly) ease-in-out infinite alternate;
+}
+
+.animate-float-up {
+  will-change: transform, opacity;
+  animation: float-up var(--dur) var(--delay) ease-in-out infinite;
 }

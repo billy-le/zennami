@@ -10,14 +10,13 @@
     "zip": "wxt zip"
   },
   "dependencies": {
+    "@tanstack/react-query": "^5.90.21",
+    "@webext-core/messaging": "^2.3.0",
     "@zennami/shared": "workspace:*",
-    "react": "^19.2.4",
-    "react-dom": "^19.2.4"
+    "hono": "^4.12.3"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.2.1",
-    "@types/react": "^19.2.13",
-    "@types/react-dom": "^19.2.3",
     "@wxt-dev/module-react": "^1.1.5",
     "tailwindcss": "^4.2.1",
     "vite": "^7.3.1",

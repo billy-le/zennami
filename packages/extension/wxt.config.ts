@@ -13,6 +13,20 @@ export default defineConfig({
     },
     startUrls: ["http://localhost:5173"],
   },
+  manifest: {
+    permissions: ["storage", "offscreen"],
+    host_permissions: [
+      "https://*.api.radio-browser.info/*",
+      "https://zennami-server.*.workers.dev/*",
+    ],
+  },
+  hooks: {
+    "build:manifestGenerated": (wxt, manifest) => {
+      if (wxt.config.mode === "development") {
+        manifest.host_permissions?.push("http://localhost:5173/*");
+      }
+    },
+  },
   vite: () => ({
     plugins: [tailwindcss() as any],
     resolve: {

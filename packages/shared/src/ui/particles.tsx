@@ -9,6 +9,17 @@ interface Particle {
   drift: string;
 }
 
+/**
+ * Particles was already using transform + opacity in its keyframe (float-up),
+ * so it was the least problematic component. The main improvement is that
+ * `will-change: transform, opacity` is now declared in the .animate-float-up
+ * CSS class, which promotes each particle to its own compositing layer
+ * before the animation starts — avoiding the "layer promotion jank" that can
+ * happen on the first frame.
+ *
+ * With 18 particles this is safe. If you ever scale to 50+ particles,
+ * consider batching them onto a single <canvas> element instead.
+ */
 export function Particles() {
   const particles = useMemo<Particle[]>(() => {
     return Array.from({ length: 18 }, (_, i) => ({
@@ -26,7 +37,7 @@ export function Particles() {
       {particles.map((p) => (
         <div
           key={p.id}
-          className="absolute w-0.5 h-0.5 bg-amber rounded-full opacity-0 animate-float-up"
+          className="absolute w-0.5 h-0.5 bg-amber rounded-full animate-float-up"
           style={{
             left: p.left,
             top: p.top,

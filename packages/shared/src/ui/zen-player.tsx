@@ -1,16 +1,27 @@
 import { useState } from "react";
-import { Particles } from "./particles";
 import { Orb } from "./orb";
-import { Waveform } from "./waveform";
 import { Controls } from "./controls";
-import { PlaylistPanel, TRACKS } from "./playlist-panel";
+import { PlaylistPanel } from "./playlist-panel";
+import { RadioStation } from "../types/radio-station";
 
-export function ZenPlayer() {
-  const [playing, setPlaying] = useState(true);
+interface ZenPlayerProps {
+  stations: RadioStation[],
+  currentStation: RadioStation | null,
+  nowPlaying: {
+    station: string | null,
+    genre: string | null,
+    title: string | null
+  } | undefined,
+  isPlaying: boolean,
+  onTogglePlay: () => void;
+  onNextStation: () => void;
+  onPrevStation: () => void;
+  onFavorite: () => void;
+}
+
+export function ZenPlayer({ stations, currentStation, nowPlaying, onTogglePlay, isPlaying, }: ZenPlayerProps) {
   const [showPlaylist, setShowPlaylist] = useState(false);
-  const [activeTrackId, setActiveTrackId] = useState(1);
-
-  const activeTrack = TRACKS.find((t) => t.id === activeTrackId) ?? TRACKS[0];
+  const [activeTrackId, setActiveTrackId] = useState('');
 
   return (
     <div
@@ -36,7 +47,6 @@ export function ZenPlayer() {
         }}
       />
 
-      <Particles />
 
       {/* Player content */}
       <div className="relative z-10 w-full h-full flex flex-col items-center px-6 pt-7 pb-5.5">
@@ -46,7 +56,7 @@ export function ZenPlayer() {
             className="text-[11px] tracking-[0.35em] uppercase text-fog"
             style={{ fontFamily: "var(--font-mono)", fontWeight: 300 }}
           >
-            Zen Nami
+            ZenNami
           </span>
           <div
             className="size-1.75 bg-amber rounded-full animate-pulse-dot"
@@ -59,17 +69,15 @@ export function ZenPlayer() {
         {/* Track info */}
         <div className="text-center mb-5 w-full">
           <div className="text-xl font-light italic text-cream tracking-[0.02em] mb-1 whitespace-nowrap overflow-hidden text-ellipsis">
-            {activeTrack.title}
+            {currentStation?.name}
           </div>
           <div
             className="text-[11px] text-fog tracking-[0.2em] uppercase"
             style={{ fontFamily: "var(--font-mono)", fontWeight: 300 }}
           >
-            {activeTrack.artist}
+            {nowPlaying?.title ?? nowPlaying?.station ?? 'Now Playing'}
           </div>
         </div>
-
-        <Waveform playing={playing} />
 
         {/* Progress bar */}
         <div className="w-full mb-5">
@@ -89,11 +97,10 @@ export function ZenPlayer() {
             style={{ fontFamily: "var(--font-mono)" }}
           >
             <span>1:24</span>
-            <span>{activeTrack.duration}</span>
           </div>
         </div>
 
-        <Controls playing={playing} onTogglePlay={() => setPlaying((p) => !p)} />
+        <Controls playing={isPlaying} onTogglePlay={onTogglePlay} />
 
         {/* Volume + playlist row */}
         <div className="w-full flex items-center justify-between gap-3">
@@ -121,6 +128,7 @@ export function ZenPlayer() {
 
       {/* Playlist overlay */}
       <PlaylistPanel
+        stations={stations}
         open={showPlaylist}
         onClose={() => setShowPlaylist(false)}
         activeTrackId={activeTrackId}

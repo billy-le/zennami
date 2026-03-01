@@ -2,7 +2,9 @@
   "extends": "../../tsconfig.json",
   "compilerOptions": {
     "declaration": true,
-    "jsx": "react-jsx",
-    "outDir": "./dist"
+    "outDir": "./dist",
+    "paths": {
+      "@zennami/server": ["../server/src/index.ts"]
+    }
   }
 }

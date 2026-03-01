@@ -6,9 +6,14 @@
     "strict": true,
     "skipLibCheck": true,
     "lib": ["ESNext"],
+    "jsx": "react-jsx",
      "paths": {
       "@zennami/shared": ["./packages/shared/src/index.ts"],
-      "@zennami/shared/*": ["./packages/shared/src/*"]
     }
-  }
+  },
+  "exclude": [
+    "packages/*/node_modules",
+    "packages/*/.output",
+    "packages/*/wxt.config.ts"
+  ]
 }

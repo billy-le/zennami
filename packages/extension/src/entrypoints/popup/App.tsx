@@ -1,7 +1,15 @@
-import { ZenPlayer } from '@zennami/shared/index';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ApiWrapper } from './api-wrapper';
 
-function App() {
-  return <ZenPlayer />;
+const queryClient = new QueryClient()
+
+if (window.__PLAYER_STATE__) {
+  queryClient.setQueryData(['playerState'], window.__PLAYER_STATE__)
 }
 
-export default App;
+export function App() {
+  return <QueryClientProvider client={queryClient}>
+    <ApiWrapper />
+  </QueryClientProvider>
+}
+

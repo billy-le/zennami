@@ -10,7 +10,13 @@
     "release": "pnpm --filter @zennami/extension zip"
   },
   "devDependencies": {
+    "@types/react": "^19.2.13",
+    "@types/react-dom": "^19.2.3",
     "concurrently": "^9.x",
     "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4"
   }
 }

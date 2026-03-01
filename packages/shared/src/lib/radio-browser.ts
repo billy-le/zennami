@@ -1,25 +1,12 @@
+import type { RadioStation } from "../types/radio-station";
+import { USER_AGENT } from "../const";
+
 const BASE_URL = "https://de1.api.radio-browser.info/json";
-const USER_AGENT = "ZenNami/0.0.1";
 
 const headers = {
   "User-Agent": USER_AGENT,
   "Content-Type": "application/json",
 };
-
-export interface RadioStation {
-  stationuuid: string;
-  name: string;
-  url: string;
-  url_resolved: string;
-  favicon: string;
-  tags: string;
-  country: string;
-  language: string;
-  votes: number;
-  codec: string;
-  bitrate: number;
-  lastcheckok: number;
-}
 
 // Get stations by tag (e.g. "lofi", "chillout", "jazz")
 export async function getStationsByTag(
@@ -34,8 +21,12 @@ export async function getStationsByTag(
   );
 
   if (!res.ok) throw new Error(`Radio Browser API error: ${res.status}`);
-  return res.json() as unknown as RadioStation[];
+  const data = (await res.json()) as unknown as RadioStation[];
+  const filterList = ["france info (lofi)"];
+  return data.filter((d) => !filterList.includes(d.name));
 }
+
+export async function clickStation() {}
 
 // Search stations by name
 export async function searchStations(
