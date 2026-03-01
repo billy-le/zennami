@@ -2,6 +2,14 @@ console.log("[offscreen] loaded");
 
 const audio = document.getElementById("player") as HTMLAudioElement;
 
+function audioStoppped() {
+  browser.runtime.sendMessage({ type: "AUDIO_STOPPED" });
+}
+
+audio.addEventListener("ended", audioStoppped);
+
+audio.addEventListener("error", audioStoppped);
+
 browser.runtime.onMessage.addListener((message) => {
   console.log("[offscreen] received message:", message);
 

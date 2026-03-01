@@ -24,6 +24,7 @@ export async function setupOffscreenDocument(path: PublicPath) {
       justification: "Radio station audio",
     });
     await creating;
+    console.log(browser.runtime.getURL(path));
     creating = null;
   }
 }

@@ -95,6 +95,68 @@ export function usePauseStation() {
   });
 }
 
+export function usePrevStation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: () => sendMessage("prevStation"),
+    onMutate: async () => {
+      await queryClient.cancelQueries({ queryKey: QUERY_KEY });
+      const previous = queryClient.getQueryData<PlayerState>(QUERY_KEY);
+
+      // Optimistically show playing state while we wait
+      queryClient.setQueryData<PlayerState>(QUERY_KEY, (prev) => ({
+        ...prev!,
+        isPlaying: true,
+      }));
+
+      return { previous };
+    },
+    onSuccess: (data) => {
+      // Background returns updated PlayerState with new station
+      queryClient.setQueryData(QUERY_KEY, data);
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(QUERY_KEY, context.previous);
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEY });
+    },
+  });
+}
+
+export function useNextStation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: () => sendMessage("nextStation"),
+    onMutate: async () => {
+      await queryClient.cancelQueries({ queryKey: QUERY_KEY });
+      const previous = queryClient.getQueryData<PlayerState>(QUERY_KEY);
+
+      queryClient.setQueryData<PlayerState>(QUERY_KEY, (prev) => ({
+        ...prev!,
+        isPlaying: true,
+      }));
+
+      return { previous };
+    },
+    onSuccess: (data) => {
+      queryClient.setQueryData(QUERY_KEY, data);
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(QUERY_KEY, context.previous);
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEY });
+    },
+  });
+}
+
 export function useSetVolume() {
   const queryClient = useQueryClient();
 
@@ -127,6 +189,8 @@ export function useControls() {
   const { mutate: play } = usePlayStation();
   const { mutate: pause } = usePauseStation();
   const { mutate: volume } = useSetVolume();
+  const { mutate: prev } = usePrevStation();
+  const { mutate: next } = useNextStation();
 
   return {
     toggle: () => {
@@ -140,5 +204,7 @@ export function useControls() {
     setVolume: (v: number) => {
       volume(v);
     },
+    next,
+    prev,
   };
 }

@@ -19,7 +19,7 @@ interface ZenPlayerProps {
   onFavorite: () => void;
 }
 
-export function ZenPlayer({ stations, currentStation, nowPlaying, onTogglePlay, isPlaying, }: ZenPlayerProps) {
+export function ZenPlayer({ stations, currentStation, nowPlaying, onTogglePlay, onPrevStation, onNextStation, isPlaying, }: ZenPlayerProps) {
   const [showPlaylist, setShowPlaylist] = useState(false);
   const [activeTrackId, setActiveTrackId] = useState('');
 
@@ -100,7 +100,7 @@ export function ZenPlayer({ stations, currentStation, nowPlaying, onTogglePlay, 
           </div>
         </div>
 
-        <Controls playing={isPlaying} onTogglePlay={onTogglePlay} />
+        <Controls playing={isPlaying} onTogglePlay={onTogglePlay} onPrevStation={onPrevStation} onNextStation={onNextStation} />
 
         {/* Volume + playlist row */}
         <div className="w-full flex items-center justify-between gap-3">

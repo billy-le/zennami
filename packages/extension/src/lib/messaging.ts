@@ -25,6 +25,9 @@ interface ProtocolMap {
   playStation(params: { station: RadioStation }): void;
   pauseStation(): void;
   setVolume(params: { volume: number }): void;
+  nextStation(): PlayerState;
+  prevStation(): PlayerState;
+  audioStopped(): void;
 }
 
 export const { sendMessage, onMessage } =

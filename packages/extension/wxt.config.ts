@@ -14,7 +14,7 @@ export default defineConfig({
     startUrls: ["http://localhost:5173"],
   },
   manifest: {
-    permissions: ["storage", "offscreen"],
+    permissions: ["storage", "offscreen", "background"],
     host_permissions: [
       "https://*.api.radio-browser.info/*",
       "https://zennami-server.*.workers.dev/*",

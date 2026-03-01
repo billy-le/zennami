@@ -1,19 +1,14 @@
 interface ControlsProps {
   playing: boolean;
   onTogglePlay: () => void;
+  onNextStation: () => void;
+  onPrevStation: () => void;
 }
 
-export function Controls({ playing, onTogglePlay }: ControlsProps) {
+export function Controls({ playing, onTogglePlay, onPrevStation, onNextStation }: ControlsProps) {
   return (
     <div className="flex items-center justify-center gap-7 mb-6">
-      <CtrlBtn aria-label="Shuffle">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-          <polyline points="16 3 21 3 21 8" /><line x1="4" y1="20" x2="21" y2="3" />
-          <polyline points="21 16 21 21 16 21" /><line x1="15" y1="15" x2="21" y2="21" />
-        </svg>
-      </CtrlBtn>
-
-      <CtrlBtn aria-label="Previous">
+      <CtrlBtn aria-label="Previous" onClick={onPrevStation}>
         <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
           <path d="M6 6h2v12H6zm3.5 6 8.5 6V6z" />
         </svg>
@@ -39,16 +34,9 @@ export function Controls({ playing, onTogglePlay }: ControlsProps) {
         )}
       </button>
 
-      <CtrlBtn aria-label="Next">
+      <CtrlBtn aria-label="Next" onClick={onNextStation}>
         <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
           <path d="M6 18l8.5-6L6 6v12zm2.5-6 6 4.3V7.7l-6 4.3zM16 6h2v12h-2z" />
-        </svg>
-      </CtrlBtn>
-
-      <CtrlBtn aria-label="Loop">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-          <polyline points="17 1 21 5 17 9" /><path d="M3 11V9a4 4 0 0 1 4-4h14" />
-          <polyline points="7 23 3 19 7 15" /><path d="M21 13v2a4 4 0 0 1-4 4H3" />
         </svg>
       </CtrlBtn>
     </div>

@@ -1,6 +1,6 @@
 import { apiClient } from "@/lib/api-client";
 import { isFirefox, setupOffscreenDocument } from "@/lib/helpers";
-import { onMessage, sendMessage } from "@/lib/messaging";
+import { onMessage } from "@/lib/messaging";
 import {
   DEFAULT_PLAYER_STATE,
   getStationsByTag,
@@ -52,14 +52,47 @@ async function getStations(tag: string): Promise<RadioStation[]> {
   return data;
 }
 
+async function playStation(stationUrl: string) {
+  await browser.runtime.sendMessage({
+    type: "OFFSCREEN_PLAY",
+    url: stationUrl,
+  });
+}
+
+async function switchStation(direction: "next" | "prev"): Promise<PlayerState> {
+  const currentStation = playerState.currentStation;
+  if (!currentStation) return playerState;
+
+  const stations = await getStations("lofi");
+  if (!stations.length) return playerState;
+
+  const index = stations.findIndex(
+    (s) => s.stationuuid === currentStation.stationuuid,
+  );
+
+  const nextIndex =
+    direction === "next" ? (index + 1) % stations.length : index - 1; // .at() handles -1 wrapping naturally
+
+  const station = stations.at(index === -1 ? 0 : nextIndex)!;
+
+  playerState = {
+    ...playerState,
+    isPlaying: true,
+    currentStation: station,
+  };
+
+  await savePlayerState();
+  await playStation(station.url_resolved);
+
+  return playerState;
+}
+
 export default defineBackground(() => {
   loadPlayerState().then((state) => {
-    playerState = state;
-
-    // Resume playback if was playing
-    if (state.isPlaying && state.currentStation) {
-      sendMessage("playStation", { station: state.currentStation });
-    }
+    playerState = {
+      ...state,
+      isPlaying: false,
+    };
   });
 
   if (!isFirefox) {
@@ -117,12 +150,9 @@ export default defineBackground(() => {
       isPlaying: true,
       currentStation: data.station,
     };
+
     await savePlayerState();
-    const proxiedUrl = `${import.meta.env.VITE_SERVER_URL}/api/stream?url=${encodeURIComponent(data.station.url_resolved)}`;
-    await browser.runtime.sendMessage({
-      type: "OFFSCREEN_PLAY",
-      url: proxiedUrl,
-    });
+    await playStation(data.station.url_resolved);
   });
 
   onMessage("pauseStation", async () => {
@@ -146,5 +176,20 @@ export default defineBackground(() => {
       type: "OFFSCREEN_VOLUME",
       volume: data.volume,
     });
+  });
+
+  onMessage("nextStation", async () => switchStation("next"));
+  onMessage("prevStation", async () => switchStation("prev"));
+
+  browser.runtime.onMessage.addListener(async (message) => {
+    switch (message.type) {
+      case "AUDIO_STOPPED": {
+        playerState = {
+          ...playerState,
+          isPlaying: false,
+        };
+        await savePlayerState();
+      }
+    }
   });
 });

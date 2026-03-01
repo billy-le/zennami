@@ -5,19 +5,13 @@ import { usePlayerState, useControls } from "@/hooks/use-player-state"
 
 export function ApiWrapper() {
   const { data: playerState, } = usePlayerState()
-  const { toggle, isPlaying } = useControls()
+  const { toggle, isPlaying, next, prev } = useControls()
   const { data: stations = [] } = useStations('lofi')
-  const { data } = useNowPlaying(stations?.[0]?.url_resolved)
+  const { data } = useNowPlaying(playerState.currentStation?.url_resolved)
 
   function onFavorite() { }
 
-  function onNextStation() {
-    onNextStation()
-  }
-
-  function onPrevStation() { }
-
   return <ZenPlayer stations={stations} currentStation={playerState?.currentStation} nowPlaying={data?.success ? {
     ...data.data,
-  } : undefined} isPlaying={isPlaying} onFavorite={onFavorite} onNextStation={onNextStation} onPrevStation={onPrevStation} onTogglePlay={toggle} />
+  } : undefined} isPlaying={isPlaying} onFavorite={onFavorite} onNextStation={next} onPrevStation={prev} onTogglePlay={toggle} />
 }
