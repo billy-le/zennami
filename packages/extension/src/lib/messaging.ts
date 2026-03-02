@@ -1,5 +1,5 @@
 import { defineExtensionMessaging } from "@webext-core/messaging";
-import type { PlayerState, RadioStation } from "@zennami/shared";
+import type { PlayerState, RadioStation, StationGroup } from "@zennami/shared";
 import type { InferResponseType } from "hono/client";
 import type { ApiClient } from "./api-client";
 
@@ -17,7 +17,7 @@ type NowPlayingBadRequest = InferResponseType<
 >;
 
 interface ProtocolMap {
-  getStations(): RadioStation[];
+  getGroupStations(): StationGroup[];
   getNowPlaying(params: {
     streamUrl: string;
   }): NowPlayingOk | NowPlayingError | NowPlayingBadRequest;

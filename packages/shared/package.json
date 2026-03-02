@@ -3,8 +3,9 @@
   "private": true,
   "type": "module",
   "dependencies": {
-    "zod": "^4.3.6",
-    "@zennami/server": "workspace:*"
+    "@zennami/server": "workspace:*",
+    "tldts": "^7.0.23",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.2.1",

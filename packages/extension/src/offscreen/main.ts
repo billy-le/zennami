@@ -1,31 +1,22 @@
 console.log("[offscreen] loaded");
-
-const audio = document.getElementById("player") as HTMLAudioElement;
+import { play, pause, setVolume } from "@/lib/audio";
 
 function audioStoppped() {
   browser.runtime.sendMessage({ type: "AUDIO_STOPPED" });
 }
 
-audio.addEventListener("ended", audioStoppped);
-
-audio.addEventListener("error", audioStoppped);
-
 browser.runtime.onMessage.addListener((message) => {
-  console.log("[offscreen] received message:", message);
-
   switch (message.type) {
     case "OFFSCREEN_PLAY":
-      audio.src = message.url;
-      audio.load();
-      audio.addEventListener("canplay", () => {
-        audio.play();
-      });
+      play({ source: "main", url: message.url });
       break;
     case "OFFSCREEN_PAUSE":
-      audio.pause();
+      pause();
       break;
     case "OFFSCREEN_VOLUME":
-      audio.volume = message.volume;
+      setVolume({ source: "main", volume: message.volume });
       break;
   }
+
+  return true;
 });

@@ -5,7 +5,7 @@ export interface RadioStation {
   clicktimestamp: string;
   clicktimestamp_iso8601: string;
   clicktrend: number;
-  codec: "MP3";
+  codec: "MP3" | "AAC" | "AAC+" | "OGG" | "UNKNOWN";
   country: string;
   countrycode: string;
   favicon: string;
@@ -36,4 +36,21 @@ export interface RadioStation {
   url: string;
   url_resolved: string;
   votes: number;
+}
+
+export interface StationVariant {
+  station: RadioStation;
+  /** Differentiating label within the group, e.g. "[2]", "OPUS 96", "AAC+ 320k" */
+  variantLabel: string | null;
+}
+
+export interface StationGroup {
+  /** Human-readable brand name (from the first station seen in the group) */
+  brandName: string;
+  /** Shared favicon — most common one across variants */
+  favicon: string | null;
+  /** The signal used to form this group: "domain" or "name" */
+  groupedBy: "domain" | "name";
+  domain: string;
+  variants: StationVariant[];
 }

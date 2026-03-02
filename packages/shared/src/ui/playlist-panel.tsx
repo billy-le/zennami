@@ -1,17 +1,17 @@
 import { useState } from "react";
-import type { RadioStation } from "../types/radio-station";
+import type { StationGroup } from "../types/radio-station";
 
 const MOODS = ["focus", "sleep", "study", "morning", "rain"];
 
 interface PlaylistPanelProps {
-  stations: RadioStation[]
+  groupStations: StationGroup[]
   open: boolean;
   onClose: () => void;
-  activeTrackId: string;
+  activeTrackId?: string;
   onSelectTrack: (id: string) => void;
 }
 
-export function PlaylistPanel({ stations, open, onClose, activeTrackId, onSelectTrack }: PlaylistPanelProps) {
+export function PlaylistPanel({ groupStations, open, onClose, activeTrackId, onSelectTrack }: PlaylistPanelProps) {
   const [activeMood, setActiveMood] = useState("focus");
 
   return (
@@ -26,7 +26,7 @@ export function PlaylistPanel({ stations, open, onClose, activeTrackId, onSelect
           className="text-[11px] tracking-[0.3em] uppercase text-fog"
           style={{ fontFamily: "var(--font-mono)" }}
         >
-          Queue
+          Stations
         </span>
         <button
           onClick={onClose}
@@ -38,43 +38,54 @@ export function PlaylistPanel({ stations, open, onClose, activeTrackId, onSelect
 
       {/* Track list */}
       <div className="flex flex-col gap-0.5 overflow-y-auto flex-1 scrollbar-thin">
-        {stations.map((track, i) => {
-          const isActive = track.stationuuid === activeTrackId;
-          return (
-            <div
-              key={track.stationuuid}
-              onClick={() => onSelectTrack(track.stationuuid)}
-              className={`flex items-center px-3 py-2.5 rounded-lg cursor-pointer gap-3 transition-colors duration-150 ${isActive ? "bg-sage/25" : "hover:bg-sage/15"
-                }`}
-            >
-              <span
-                className={`text-[10px] w-4 text-right shrink-0 ${isActive ? "text-amber" : "text-fog"}`}
-                style={{ fontFamily: "var(--font-mono)" }}
-              >
-                {isActive ? "▶" : i + 1}
-              </span>
-              <div className="flex-1 overflow-hidden">
-                <div
-                  className={`text-sm font-light italic whitespace-nowrap overflow-hidden text-ellipsis ${isActive ? "text-amber" : "text-cream"
-                    }`}
-                >
-                  {track.name}
-                </div>
-                <div
-                  className="text-[9px] text-fog tracking-widest mt-0.5"
-                  style={{ fontFamily: "var(--font-mono)" }}
-                >
-                  {track.tags}
-                </div>
-              </div>
-              <span
-                className="text-[10px] text-fog shrink-0"
-                style={{ fontFamily: "var(--font-mono)" }}
-              >
-                {track.codec}
-              </span>
-            </div>
-          );
+        {groupStations.map((group) => {
+          return <div key={group.brandName}>
+            <h3 className="text-amber text-xl line-clamp-1">{group.brandName}</h3>
+            <ul>
+              {group.variants.map((variant, i) => {
+                const isActive = variant.station.stationuuid === activeTrackId;
+                const tags = variant.station.tags.split(',')
+                return (
+                  <div
+                    key={variant.station.stationuuid}
+                    onClick={() => onSelectTrack(variant.station.stationuuid)}
+                    className={`flex items-center px-3 py-2.5 rounded-lg cursor-pointer gap-3 transition-colors duration-150 ${isActive ? "bg-sage/25" : "hover:bg-sage/15"
+                      }`}
+                  >
+                    <span
+                      className={`text-lg text-right shrink-0 ${isActive ? "text-amber bg-amber/50" : "text-fog"}`}
+                      style={{ fontFamily: "var(--font-mono)" }}
+                    >
+                      {isActive ? "▶" : i + 1}
+                    </span>
+                    <div className="flex-1 overflow-hidden">
+                      <div
+                        className={`text-xl font-light italic whitespace-nowrap overflow-hidden text-ellipsis ${isActive ? "text-amber" : "text-cream"
+                          }`}
+                      >
+                        {variant.station.name}
+                      </div>
+                      <div
+                        className="text-sm text-fog tracking-wide mt-0.5"
+                        style={{ fontFamily: "var(--font-mono)" }}
+                      >
+                        {variant.station.tags}
+                      </div>
+                    </div>
+                    <span
+                      className="text-xs text-fog shrink-0"
+                      style={{ fontFamily: "var(--font-mono)" }}
+                    >
+                      {variant.station.codec}
+                      {' '}{variant.station.bitrate != 0 ? `${variant.station.bitrate}K` : '-'}
+                    </span>
+                  </div>
+                );
+
+              })}
+            </ul>
+          </div>
+
         })}
       </div>
 

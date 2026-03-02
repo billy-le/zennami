@@ -2,11 +2,12 @@ import { useState } from "react";
 import { Orb } from "./orb";
 import { Controls } from "./controls";
 import { PlaylistPanel } from "./playlist-panel";
-import { RadioStation } from "../types/radio-station";
+import { RadioStation, StationGroup } from "../types/radio-station";
 
 interface ZenPlayerProps {
-  stations: RadioStation[],
+  groupStations: StationGroup[],
   currentStation: RadioStation | null,
+  volume: number;
   nowPlaying: {
     station: string | null,
     genre: string | null,
@@ -19,13 +20,12 @@ interface ZenPlayerProps {
   onFavorite: () => void;
 }
 
-export function ZenPlayer({ stations, currentStation, nowPlaying, onTogglePlay, onPrevStation, onNextStation, isPlaying, }: ZenPlayerProps) {
+export function ZenPlayer({ groupStations, currentStation, nowPlaying, volume, onTogglePlay, onPrevStation, onNextStation, isPlaying, }: ZenPlayerProps) {
   const [showPlaylist, setShowPlaylist] = useState(false);
-  const [activeTrackId, setActiveTrackId] = useState('');
-
+  const [activeTrackId, setActiveTrackId] = useState(currentStation?.stationuuid);
   return (
     <div
-      className="relative w-90 h-140 overflow-hidden flex flex-col items-center font-display"
+      className="relative w-120 h-140 overflow-hidden flex flex-col items-center font-display"
       style={{ background: "#1a2318" }}
     >
       {/* Ambient gradient layers */}
@@ -47,21 +47,14 @@ export function ZenPlayer({ stations, currentStation, nowPlaying, onTogglePlay, 
         }}
       />
 
-
       {/* Player content */}
       <div className="relative z-10 w-full h-full flex flex-col items-center px-6 pt-7 pb-5.5">
-        {/* Header */}
         <div className="w-full flex justify-between items-center mb-6">
-          <span
-            className="text-[11px] tracking-[0.35em] uppercase text-fog"
-            style={{ fontFamily: "var(--font-mono)", fontWeight: 300 }}
+          <h1
+            className="text-xs font-mono tracking-[0.35em] uppercase text-fog"
           >
             ZenNami
-          </span>
-          <div
-            className="size-1.75 bg-amber rounded-full animate-pulse-dot"
-            style={{ boxShadow: "0 0 8px #c9a96e" }}
-          />
+          </h1>
         </div>
 
         <Orb />
@@ -79,27 +72,6 @@ export function ZenPlayer({ stations, currentStation, nowPlaying, onTogglePlay, 
           </div>
         </div>
 
-        {/* Progress bar */}
-        <div className="w-full mb-5">
-          <div className="w-full h-0.5 bg-mist/20 rounded-sm relative cursor-pointer mb-2">
-            <div
-              className="h-full w-[38%] rounded-sm relative"
-              style={{ background: "linear-gradient(to right, #4a6741, #c9a96e)" }}
-            >
-              <div
-                className="absolute -right-1 top-1/2 -translate-y-1/2 w-2 h-2 bg-amber rounded-full"
-                style={{ boxShadow: "0 0 8px #c9a96e" }}
-              />
-            </div>
-          </div>
-          <div
-            className="flex justify-between text-[10px] text-fog tracking-[0.05em]"
-            style={{ fontFamily: "var(--font-mono)" }}
-          >
-            <span>1:24</span>
-          </div>
-        </div>
-
         <Controls playing={isPlaying} onTogglePlay={onTogglePlay} onPrevStation={onPrevStation} onNextStation={onNextStation} />
 
         {/* Volume + playlist row */}
@@ -109,26 +81,33 @@ export function ZenPlayer({ stations, currentStation, nowPlaying, onTogglePlay, 
               <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
               <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07" />
             </svg>
-            <div className="flex-1 h-0.5 bg-mist/20 rounded-sm relative cursor-pointer">
-              <div
-                className="h-full w-[65%] rounded-sm"
-                style={{ background: "linear-gradient(to right, #4a6741, rgba(201,169,110,0.7))" }}
-              />
+            <div className="flex-1 relative isolate">
+              <div className="w-full h-0.5 bg-mist/20 rounded-sm relative cursor-pointer">
+                <div
+                  className="h-full rounded-sm"
+                  style={{
+                    background: "linear-gradient(to right, #4a6741, rgba(201,169,110,0.7))",
+                    width: `${(volume / 1) * 100}%`
+                  }}
+                />
+              </div>
+              <input type='range' min={0} max={1} step={0.01} value={volume} className="absolute w-full h-full opacity-0 cursor-pointer z-2" />
             </div>
           </div>
+
           <button
             onClick={() => setShowPlaylist(true)}
             className="bg-transparent border border-mist/20 rounded-full text-fog cursor-pointer transition-all duration-200 hover:border-amber/40 hover:text-amber whitespace-nowrap px-3 py-1.5 text-[10px] tracking-[0.15em] uppercase"
             style={{ fontFamily: "var(--font-mono)" }}
           >
-            Playlist
+            Stations
           </button>
         </div>
       </div>
 
       {/* Playlist overlay */}
       <PlaylistPanel
-        stations={stations}
+        groupStations={groupStations}
         open={showPlaylist}
         onClose={() => setShowPlaylist(false)}
         activeTrackId={activeTrackId}

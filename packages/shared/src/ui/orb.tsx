@@ -8,7 +8,7 @@ export function Orb() {
       >
         {/* Ring dot */}
         <div
-          className="absolute top-0.5 left-1/2 -translate-x-1/2 w-1 h-1 bg-amber rounded-full"
+          className="absolute -top-0.5 left-1/2 -translate-x-1/2 w-1 h-1 bg-amber-400 rounded-full"
           style={{ boxShadow: "0 0 6px #c9a96e" }}
         />
       </div>

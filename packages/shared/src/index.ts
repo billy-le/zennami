@@ -12,9 +12,9 @@ export * from "./ui/playlist-panel";
 export * from "./lib/radio-browser";
 
 // Types
-export type { AppType } from "./types/api";
-export type { PlayerState } from "./types/player-state";
-export type { RadioStation } from "./types/radio-station";
+export type * from "./types/api";
+export type * from "./types/player-state";
+export type * from "./types/radio-station";
 
 // Consts
 export * from "./const";

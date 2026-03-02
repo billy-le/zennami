@@ -11,19 +11,28 @@ export default defineConfig({
     binaries: {
       firefox: "firefoxdeveloperedition",
     },
-    startUrls: ["http://localhost:5173"],
+    startUrls: [
+      "http://localhost:5173",
+      "about:debugging#/runtime/this-firefox",
+    ],
   },
   manifest: {
-    permissions: ["storage", "offscreen", "background"],
+    permissions: ["storage", "offscreen"],
     host_permissions: [
       "https://*.api.radio-browser.info/*",
-      "https://zennami-server.*.workers.dev/*",
+      "https://zennami-server-staging.workers.dev/*",
     ],
   },
   hooks: {
     "build:manifestGenerated": (wxt, manifest) => {
       if (wxt.config.mode === "development") {
         manifest.host_permissions?.push("http://localhost:5173/*");
+      }
+
+      if (wxt.config.browser === "firefox") {
+        manifest.permissions = manifest.permissions?.filter(
+          (p) => p !== "offscreen",
+        );
       }
     },
   },

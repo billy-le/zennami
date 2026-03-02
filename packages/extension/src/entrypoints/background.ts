@@ -1,16 +1,17 @@
 import { apiClient } from "@/lib/api-client";
+import { play, pause, setVolume } from "@/lib/audio";
 import { isFirefox, setupOffscreenDocument } from "@/lib/helpers";
 import { onMessage } from "@/lib/messaging";
 import {
   DEFAULT_PLAYER_STATE,
-  getStationsByTag,
-  type RadioStation,
+  getAggregatedStations,
   type PlayerState,
+  type StationGroup,
 } from "@zennami/shared";
 
 const CACHE_TTL = 1000 * 60 * 60; // 1 hour
 
-const memCache = new Map<string, { data: RadioStation[]; ts: number }>();
+const memCache = new Map<string, { data: StationGroup[]; ts: number }>();
 
 let playerState: PlayerState = {
   isPlaying: false,
@@ -29,30 +30,41 @@ async function loadPlayerState(): Promise<PlayerState> {
   return stored.playerState ?? DEFAULT_PLAYER_STATE;
 }
 
-async function getStations(tag: string): Promise<RadioStation[]> {
-  const mem = memCache.get(tag);
+async function getGroupStations(): Promise<StationGroup[]> {
+  const cacheKey = `group-stations`;
+  const mem = memCache.get(cacheKey);
   if (mem && Date.now() - mem.ts < CACHE_TTL) return mem.data;
 
-  const stored = await browser.storage.local.get<
-    Record<string, { data: RadioStation[]; ts: number }>
-  >(`stations:${tag}`);
-  const entry = stored[`stations:${tag}`];
+  const stored =
+    await browser.storage.local.get<
+      Record<string, { data: StationGroup[]; ts: number }>
+    >(cacheKey);
+  const entry = stored[cacheKey];
 
   if (entry && Date.now() - entry.ts < CACHE_TTL) {
     console.log("[background] cache hit");
-    memCache.set(tag, entry); // repopulate memory
+    memCache.set(cacheKey, entry); // repopulate memory
     return entry.data;
   }
 
-  const data = await getStationsByTag(tag); // network request happens here
+  const data = await getAggregatedStations(); // network request happens here
 
   const payload = { data, ts: Date.now() };
-  memCache.set(tag, payload);
-  await browser.storage.local.set({ [`stations:${tag}`]: payload });
+  memCache.set(cacheKey, payload);
+  await browser.storage.local.set({ [cacheKey]: payload });
   return data;
 }
 
 async function playStation(stationUrl: string) {
+  if (isFirefox) {
+    play({ source: "main", url: stationUrl });
+    playerState = {
+      ...playerState,
+      isPlaying: true,
+    };
+    await savePlayerState();
+    return;
+  }
   await browser.runtime.sendMessage({
     type: "OFFSCREEN_PLAY",
     url: stationUrl,
@@ -63,26 +75,45 @@ async function switchStation(direction: "next" | "prev"): Promise<PlayerState> {
   const currentStation = playerState.currentStation;
   if (!currentStation) return playerState;
 
-  const stations = await getStations("lofi");
-  if (!stations.length) return playerState;
-
-  const index = stations.findIndex(
-    (s) => s.stationuuid === currentStation.stationuuid,
+  const groups = await getGroupStations();
+  if (!groups.length) return playerState;
+  let stationIdx: number = 0;
+  const groupIndex = groups.findIndex((s) =>
+    s.variants.some((v, i) => {
+      if (v.station.stationuuid === currentStation.stationuuid) {
+        stationIdx = i;
+        return true;
+      }
+      return false;
+    }),
   );
 
-  const nextIndex =
-    direction === "next" ? (index + 1) % stations.length : index - 1; // .at() handles -1 wrapping naturally
-
-  const station = stations.at(index === -1 ? 0 : nextIndex)!;
+  const group = groups[groupIndex]!;
+  let stationVariant =
+    direction === "next"
+      ? group.variants[stationIdx + 1]
+      : group.variants[stationIdx - 1];
+  if (!stationVariant) {
+    const groupStationIndex =
+      direction === "next"
+        ? (groupIndex + 1) % groups.length
+        : (groupIndex - 1 + groups.length) % groups.length;
+    const groupStation = groups[groupStationIndex];
+    stationVariant =
+      direction === "next"
+        ? groupStation.variants.at(0)!
+        : groupStation.variants.at(-1)!;
+  }
 
   playerState = {
     ...playerState,
-    isPlaying: true,
-    currentStation: station,
+    currentStation: stationVariant.station,
   };
 
   await savePlayerState();
-  await playStation(station.url_resolved);
+  if (playerState.isPlaying) {
+    await playStation(stationVariant.station.url_resolved);
+  }
 
   return playerState;
 }
@@ -103,16 +134,17 @@ export default defineBackground(() => {
   // Pre-fetch on install
   browser.runtime.onInstalled.addListener(async () => {
     console.log("[background] pre-warming station cache...");
-    await getStations("lofi").catch(console.error);
+    await getGroupStations().catch(console.error);
   });
 
   // Pre-fetch on browser startup
   browser.runtime.onStartup.addListener(async () => {
-    await getStations("lofi").catch(console.error);
+    console.log("[background] pre-fetching station cache...");
+    await getGroupStations().catch(console.error);
   });
 
-  onMessage("getStations", async () => {
-    return getStations("lofi");
+  onMessage("getGroupStations", async () => {
+    return await getGroupStations();
   });
 
   onMessage("getNowPlaying", async ({ data }) => {
@@ -132,8 +164,8 @@ export default defineBackground(() => {
   onMessage("getPlayerState", async () => {
     if (playerState.currentStation) return playerState;
 
-    const stations = await getStations("lofi");
-    const firstStation = stations[0] ?? null;
+    const groupStations = await getGroupStations();
+    const firstStation = groupStations[0].variants[0].station ?? null;
 
     playerState = {
       ...playerState,
@@ -161,6 +193,10 @@ export default defineBackground(() => {
       isPlaying: false,
     };
     await savePlayerState();
+    if (isFirefox) {
+      pause();
+      return;
+    }
     await browser.runtime.sendMessage({
       type: "OFFSCREEN_PAUSE",
     });
@@ -172,6 +208,10 @@ export default defineBackground(() => {
       volume: data.volume,
     };
     await savePlayerState();
+    if (isFirefox) {
+      setVolume({ source: "main", volume: data.volume });
+      return;
+    }
     await browser.runtime.sendMessage({
       type: "OFFSCREEN_VOLUME",
       volume: data.volume,
@@ -181,14 +221,18 @@ export default defineBackground(() => {
   onMessage("nextStation", async () => switchStation("next"));
   onMessage("prevStation", async () => switchStation("prev"));
 
-  browser.runtime.onMessage.addListener(async (message) => {
+  browser.runtime.onMessage.addListener((message) => {
     switch (message.type) {
       case "AUDIO_STOPPED": {
         playerState = {
           ...playerState,
           isPlaying: false,
         };
-        await savePlayerState();
+        savePlayerState();
+        return false;
+      }
+      default: {
+        return false;
       }
     }
   });

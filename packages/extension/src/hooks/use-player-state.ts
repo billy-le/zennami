@@ -201,6 +201,7 @@ export function useControls() {
       }
     },
     isPlaying: playerState?.isPlaying ?? false,
+    volume: playerState.volume,
     setVolume: (v: number) => {
       volume(v);
     },
