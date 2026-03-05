@@ -1,7 +1,8 @@
 import { apiClient } from "@/lib/api-client";
-import { play, pause, setVolume } from "@/lib/audio";
+import { play, pause, setVolume, toggleMute } from "@/lib/audio";
 import { isFirefox, setupOffscreenDocument } from "@/lib/helpers";
 import { onMessage } from "@/lib/messaging";
+
 import {
   DEFAULT_PLAYER_STATE,
   getAggregatedStations,
@@ -55,80 +56,88 @@ async function getGroupStations(): Promise<StationGroup[]> {
   return data;
 }
 
-async function playStation(stationUrl: string) {
-  if (isFirefox) {
-    play({ source: "main", url: stationUrl });
-    playerState = {
-      ...playerState,
-      isPlaying: true,
-    };
-    await savePlayerState();
-    return;
-  }
-  await browser.runtime.sendMessage({
-    type: "OFFSCREEN_PLAY",
-    url: stationUrl,
-  });
-}
-
-async function switchStation(direction: "next" | "prev"): Promise<PlayerState> {
-  const currentStation = playerState.currentStation;
-  if (!currentStation) return playerState;
-
-  const groups = await getGroupStations();
-  if (!groups.length) return playerState;
-  let stationIdx: number = 0;
-  const groupIndex = groups.findIndex((s) =>
-    s.variants.some((v, i) => {
-      if (v.station.stationuuid === currentStation.stationuuid) {
-        stationIdx = i;
-        return true;
-      }
-      return false;
-    }),
-  );
-
-  const group = groups[groupIndex]!;
-  let stationVariant =
-    direction === "next"
-      ? group.variants[stationIdx + 1]
-      : group.variants[stationIdx - 1];
-  if (!stationVariant) {
-    const groupStationIndex =
-      direction === "next"
-        ? (groupIndex + 1) % groups.length
-        : (groupIndex - 1 + groups.length) % groups.length;
-    const groupStation = groups[groupStationIndex];
-    stationVariant =
-      direction === "next"
-        ? groupStation.variants.at(0)!
-        : groupStation.variants.at(-1)!;
-  }
-
-  playerState = {
-    ...playerState,
-    currentStation: stationVariant.station,
-  };
-
-  await savePlayerState();
-  if (playerState.isPlaying) {
-    await playStation(stationVariant.station.url_resolved);
-  }
-
-  return playerState;
-}
-
 export default defineBackground(() => {
-  loadPlayerState().then((state) => {
+  let isOffscreenReady = false;
+
+  loadPlayerState().then(async (state) => {
     playerState = {
       ...state,
       isPlaying: false,
     };
+
+    if (!isFirefox) {
+      console.log("[background] creating offscreen document");
+      await setupOffscreenDocument("./offscreen.html").then(() => {
+        console.log("[offscreen] offscreen ready");
+        isOffscreenReady = true;
+      });
+    }
   });
 
-  if (!isFirefox) {
-    console.log("[background] creating offscreen document");
-    setupOffscreenDocument("./offscreen.html");
+  async function playStation(stationUrl: string) {
+    if (isFirefox) {
+      await play({ source: "main", url: stationUrl });
+      playerState = {
+        ...playerState,
+        isPlaying: true,
+      };
+      await savePlayerState();
+      return;
+    }
+    if (!isOffscreenReady) return;
+    await browser.runtime.sendMessage({
+      type: "OFFSCREEN_PLAY",
+      url: stationUrl,
+    });
+  }
+
+  async function switchStation(
+    direction: "next" | "prev",
+  ): Promise<PlayerState> {
+    const currentStation = playerState.currentStation;
+    if (!currentStation) return playerState;
+
+    const groups = await getGroupStations();
+    if (!groups.length) return playerState;
+    let stationIdx: number = 0;
+    const groupIndex = groups.findIndex((s) =>
+      s.variants.some((v, i) => {
+        if (v.station.stationuuid === currentStation.stationuuid) {
+          stationIdx = i;
+          return true;
+        }
+        return false;
+      }),
+    );
+
+    const group = groups[groupIndex]!;
+    let stationVariant =
+      direction === "next"
+        ? group.variants[stationIdx + 1]
+        : group.variants[stationIdx - 1];
+    if (!stationVariant) {
+      const groupStationIndex =
+        direction === "next"
+          ? (groupIndex + 1) % groups.length
+          : (groupIndex - 1 + groups.length) % groups.length;
+      const groupStation = groups[groupStationIndex];
+      stationVariant =
+        direction === "next"
+          ? groupStation.variants.at(0)!
+          : groupStation.variants.at(-1)!;
+    }
+
+    playerState = {
+      ...playerState,
+      currentStation: stationVariant.station,
+    };
+
+    await savePlayerState();
+    if (playerState.isPlaying) {
+      await playStation(stationVariant.station.url_resolved);
+    }
+
+    return playerState;
   }
 
   // Pre-fetch on install
@@ -165,7 +174,7 @@ export default defineBackground(() => {
     if (playerState.currentStation) return playerState;
 
     const groupStations = await getGroupStations();
-    const firstStation = groupStations[0].variants[0].station ?? null;
+    const firstStation = groupStations?.[0]?.variants?.[0]?.station ?? null;
 
     playerState = {
       ...playerState,
@@ -184,7 +193,7 @@ export default defineBackground(() => {
     };
 
     await savePlayerState();
-    await playStation(data.station.url_resolved);
+    return await playStation(data.station.url_resolved);
   });
 
   onMessage("pauseStation", async () => {
@@ -194,10 +203,10 @@ export default defineBackground(() => {
     };
     await savePlayerState();
     if (isFirefox) {
-      pause();
-      return;
+      return pause();
     }
-    await browser.runtime.sendMessage({
+    if (!isOffscreenReady) return;
+    return await browser.runtime.sendMessage({
       type: "OFFSCREEN_PAUSE",
     });
   });
@@ -209,10 +218,10 @@ export default defineBackground(() => {
     };
     await savePlayerState();
     if (isFirefox) {
-      setVolume({ source: "main", volume: data.volume });
-      return;
+      return setVolume({ source: "main", volume: data.volume });
     }
-    await browser.runtime.sendMessage({
+    if (!isOffscreenReady) return;
+    return await browser.runtime.sendMessage({
       type: "OFFSCREEN_VOLUME",
       volume: data.volume,
     });
@@ -220,20 +229,18 @@ export default defineBackground(() => {
 
   onMessage("nextStation", async () => switchStation("next"));
   onMessage("prevStation", async () => switchStation("prev"));
-
-  browser.runtime.onMessage.addListener((message) => {
-    switch (message.type) {
-      case "AUDIO_STOPPED": {
-        playerState = {
-          ...playerState,
-          isPlaying: false,
-        };
-        savePlayerState();
-        return false;
-      }
-      default: {
-        return false;
-      }
+  onMessage("toggleMute", async () => {
+    if (isFirefox) {
+      return toggleMute();
     }
+    if (!isOffscreenReady) return;
+    return await browser.runtime.sendMessage({
+      type: "OFFSCREEN_TOGGLE_MUTE",
+    });
+  });
+
+  onMessage("log", async ({ data }) => {
+    console.log(data);
+    return;
   });
 });

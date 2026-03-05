@@ -25,9 +25,13 @@ export function usePlayerState() {
   return useQuery({
     queryKey: ["player-state"],
     queryFn: async () => {
-      const state = await sendMessage("getPlayerState");
-      writeSnapshot(state);
-      return state;
+      try {
+        const state = await sendMessage("getPlayerState");
+        writeSnapshot(state);
+        return state;
+      } catch (err) {
+        console.error(err);
+      }
     },
     refetchOnMount: true,
     staleTime: 0,
@@ -43,8 +47,13 @@ export function usePlayStation() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (station: RadioStation) =>
-      sendMessage("playStation", { station }),
+    mutationFn: async (station: RadioStation) => {
+      try {
+        return sendMessage("playStation", { station });
+      } catch (err) {
+        console.error(err);
+      }
+    },
     onMutate: async (station) => {
       await queryClient.cancelQueries({ queryKey: QUERY_KEY });
       const previous = queryClient.getQueryData<PlayerState>(QUERY_KEY);
@@ -72,7 +81,13 @@ export function usePauseStation() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: () => sendMessage("pauseStation"),
+    mutationFn: async () => {
+      try {
+        return sendMessage("pauseStation");
+      } catch (err) {
+        console.error(err);
+      }
+    },
     onMutate: async () => {
       await queryClient.cancelQueries({ queryKey: QUERY_KEY });
       const previous = queryClient.getQueryData<PlayerState>(QUERY_KEY);
@@ -99,7 +114,13 @@ export function usePrevStation() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: () => sendMessage("prevStation"),
+    mutationFn: async () => {
+      try {
+        sendMessage("prevStation");
+      } catch (err) {
+        console.error(err);
+      }
+    },
     onMutate: async () => {
       await queryClient.cancelQueries({ queryKey: QUERY_KEY });
       const previous = queryClient.getQueryData<PlayerState>(QUERY_KEY);
@@ -131,7 +152,13 @@ export function useNextStation() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: () => sendMessage("nextStation"),
+    mutationFn: async () => {
+      try {
+        return sendMessage("nextStation");
+      } catch (err) {
+        console.error(err);
+      }
+    },
     onMutate: async () => {
       await queryClient.cancelQueries({ queryKey: QUERY_KEY });
       const previous = queryClient.getQueryData<PlayerState>(QUERY_KEY);
@@ -161,7 +188,13 @@ export function useSetVolume() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (volume: number) => sendMessage("setVolume", { volume }),
+    mutationFn: async (volume: number) => {
+      try {
+        return await sendMessage("setVolume", { volume });
+      } catch (err) {
+        console.log(err);
+      }
+    },
     onMutate: async (volume) => {
       await queryClient.cancelQueries({ queryKey: QUERY_KEY });
       const previous = queryClient.getQueryData<PlayerState>(QUERY_KEY);
@@ -201,11 +234,19 @@ export function useControls() {
       }
     },
     isPlaying: playerState?.isPlaying ?? false,
-    volume: playerState.volume,
+    volume: playerState?.volume,
     setVolume: (v: number) => {
       volume(v);
     },
+    toggleMute: async () => {
+      try {
+        return await sendMessage("toggleMute");
+      } catch (err) {
+        console.error(err);
+      }
+    },
     next,
     prev,
+    play,
   };
 }

@@ -2,7 +2,7 @@ import type { RadioStation } from "../types/radio-station";
 import { USER_AGENT } from "../const";
 import { groupStations } from "./station-group";
 
-const BASE_URL = "https://de1.api.radio-browser.info/json";
+const BASE_URL = "https://de2.api.radio-browser.info/json";
 
 const headers = {
   "User-Agent": USER_AGENT,
@@ -10,16 +10,7 @@ const headers = {
 };
 
 export async function getAggregatedStations() {
-  const tags = [
-    "lofi",
-    "chill",
-    "relax",
-    "ambient",
-    "study",
-    "focus",
-    "downtemp",
-    "piano",
-  ];
+  const tags = ["ambient and relaxation music", "lofi", "study", "focus"];
 
   const fetchPromises = tags.map(async (tag) => {
     const url = new URL(`${BASE_URL}/stations/bytag/${tag}`);

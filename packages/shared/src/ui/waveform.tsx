@@ -21,7 +21,7 @@ interface WaveformProps {
 
 export function Waveform({ playing }: WaveformProps) {
   const bars = useMemo<Bar[]>(() => {
-    return Array.from({ length: 40 }, (_, i) => {
+    return Array.from({ length: 16 }, (_, i) => {
       /**
        * Pick a fixed rendered height for each bar. This becomes the
        * element's actual CSS height and never changes — eliminating
@@ -30,7 +30,7 @@ export function Waveform({ playing }: WaveformProps) {
        * The visual "short → tall" waveform effect is recreated by
        * animating scaleY between minScale and maxScale instead.
        */
-      const baseH = 28;
+      const baseH = 16;
       const minScale = 0.15 + Math.random() * 0.2; // ~4–9 px visible
       const maxScale = 0.55 + Math.random() * 0.45; // ~15–28 px visible
 
@@ -46,7 +46,7 @@ export function Waveform({ playing }: WaveformProps) {
   }, []);
 
   return (
-    <div className="w-full h-9 flex items-center justify-center gap-[2.5px] mb-5">
+    <div className="w-fit h-4 flex items-center justify-center gap-[2.5px]">
       {bars.map((bar) => (
         <div
           key={bar.id}

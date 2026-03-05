@@ -1,7 +1,12 @@
+import { DEFAULT_PLAYER_STATE } from "@zennami/shared";
+import { sendMessage } from "./messaging";
+
 const audioMap: Map<string, HTMLAudioElement> = new Map();
 
-export function play({ source, url }: { source: "main"; url: string }) {
+export async function play({ source, url }: { source: "main"; url: string }) {
   const exisiting = audioMap.get(source);
+  let internalVolume = exisiting?.volume ?? DEFAULT_PLAYER_STATE.volume;
+
   if (exisiting) {
     exisiting.pause();
     exisiting.src = "";
@@ -12,8 +17,15 @@ export function play({ source, url }: { source: "main"; url: string }) {
 
   const audio = new Audio(url);
 
-  audio.play().catch(console.error);
-  audioMap.set(source, audio);
+  audio.volume = internalVolume;
+  audio.load();
+  try {
+    sendMessage("log", "[audio] playing audio");
+    await audio.play();
+    audioMap.set(source, audio);
+  } catch (err) {
+    sendMessage("log", err);
+  }
 }
 
 export function pause() {
@@ -32,5 +44,11 @@ export function setVolume({
   const audio = audioMap.get(source);
   if (audio) {
     audio.volume = volume;
+  }
+}
+
+export function toggleMute() {
+  for (const [, audio] of audioMap) {
+    audio.muted = !audio.muted;
   }
 }

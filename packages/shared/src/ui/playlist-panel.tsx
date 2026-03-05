@@ -1,17 +1,20 @@
 import { useState } from "react";
-import type { StationGroup } from "../types/radio-station";
+import { IoCloseSharp, IoPlaySharp } from 'react-icons/io5'
+import type { RadioStation, StationGroup } from "../types/radio-station";
+import { Waveform } from "./waveform";
 
 const MOODS = ["focus", "sleep", "study", "morning", "rain"];
 
 interface PlaylistPanelProps {
+  isPlaying: boolean;
   groupStations: StationGroup[]
   open: boolean;
   onClose: () => void;
   activeTrackId?: string;
-  onSelectTrack: (id: string) => void;
+  onSelectStation: (station: RadioStation) => void;
 }
 
-export function PlaylistPanel({ groupStations, open, onClose, activeTrackId, onSelectTrack }: PlaylistPanelProps) {
+export function PlaylistPanel({ groupStations, isPlaying, open, onClose, activeTrackId, onSelectStation }: PlaylistPanelProps) {
   const [activeMood, setActiveMood] = useState("focus");
 
   return (
@@ -32,7 +35,7 @@ export function PlaylistPanel({ groupStations, open, onClose, activeTrackId, onS
           onClick={onClose}
           className="bg-transparent border-none text-fog opacity-60 cursor-pointer text-lg leading-none transition-opacity hover:opacity-100"
         >
-          ✕
+          <IoCloseSharp />
         </button>
       </div>
 
@@ -40,7 +43,7 @@ export function PlaylistPanel({ groupStations, open, onClose, activeTrackId, onS
       <div className="flex flex-col gap-0.5 overflow-y-auto flex-1 scrollbar-thin">
         {groupStations.map((group) => {
           return <div key={group.brandName}>
-            <h3 className="text-amber text-xl line-clamp-1">{group.brandName}</h3>
+            <h3 className="mt-5 text-amber text-xl line-clamp-1"><span className="font-mono text-sm">({group.variants.length})</span> {group.brandName}</h3>
             <ul>
               {group.variants.map((variant, i) => {
                 const isActive = variant.station.stationuuid === activeTrackId;
@@ -48,37 +51,40 @@ export function PlaylistPanel({ groupStations, open, onClose, activeTrackId, onS
                 return (
                   <div
                     key={variant.station.stationuuid}
-                    onClick={() => onSelectTrack(variant.station.stationuuid)}
-                    className={`flex items-center px-3 py-2.5 rounded-lg cursor-pointer gap-3 transition-colors duration-150 ${isActive ? "bg-sage/25" : "hover:bg-sage/15"
+                    onClick={() => onSelectStation(variant.station)}
+                    className={`flex px-3 py-2.5 rounded-lg cursor-pointer gap-3 transition-colors duration-150 ${isActive ? "bg-sage/25" : "hover:bg-sage/15"
                       }`}
                   >
-                    <span
-                      className={`text-lg text-right shrink-0 ${isActive ? "text-amber bg-amber/50" : "text-fog"}`}
-                      style={{ fontFamily: "var(--font-mono)" }}
-                    >
-                      {isActive ? "▶" : i + 1}
-                    </span>
+
                     <div className="flex-1 overflow-hidden">
-                      <div
-                        className={`text-xl font-light italic whitespace-nowrap overflow-hidden text-ellipsis ${isActive ? "text-amber" : "text-cream"
-                          }`}
-                      >
-                        {variant.station.name}
+                      <div className="flex items-center justify-between">
+
+                        <div
+                          className={`text-xl font-light italic whitespace-nowrap overflow-hidden text-ellipsis ${isActive ? "text-amber" : "text-cream"
+                            }`}
+                        >
+                          <span
+                            className={`mr-2 text-sm font-mono shrink-0 ${isActive ? "text-amber" : "text-fog"}`}
+                          >
+                            {isActive ? <IoPlaySharp className="inline" /> : i + 1}
+                          </span>
+                          {variant.station.name}
+                        </div>
+                        {isActive && <Waveform playing={isPlaying} />}
                       </div>
                       <div
-                        className="text-sm text-fog tracking-wide mt-0.5"
-                        style={{ fontFamily: "var(--font-mono)" }}
+                        className="text-sm text-fog tracking-wide mt-0.5 line-clamp-2 font-mono"
                       >
-                        {variant.station.tags}
+                        {tags.join(', ')}
                       </div>
+                      <div
+                        className="font-mono text-xs text-fog shrink-0 mt-1"
+                      >
+                        {variant.station.codec}
+                        {' '}{variant.station.bitrate != 0 ? `${variant.station.bitrate}K` : ''}
+                      </div>
+
                     </div>
-                    <span
-                      className="text-xs text-fog shrink-0"
-                      style={{ fontFamily: "var(--font-mono)" }}
-                    >
-                      {variant.station.codec}
-                      {' '}{variant.station.bitrate != 0 ? `${variant.station.bitrate}K` : '-'}
-                    </span>
                   </div>
                 );
 

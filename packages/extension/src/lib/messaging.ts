@@ -24,10 +24,12 @@ interface ProtocolMap {
   getPlayerState(): PlayerState;
   playStation(params: { station: RadioStation }): void;
   pauseStation(): void;
+  toggleMute(): void;
   setVolume(params: { volume: number }): void;
   nextStation(): PlayerState;
   prevStation(): PlayerState;
   audioStopped(): void;
+  log(msg: any): void;
 }
 
 export const { sendMessage, onMessage } =

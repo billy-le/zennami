@@ -1,0 +1,33 @@
+input[type="range"] {
+  -webkit-appearance: none;
+  position: relative;
+  border-radius: 20px;
+  height: 2px;
+  width: 100%;
+
+  background: linear-gradient(to right, var(--color-sage), var(--color-amber));
+  background-size: var(--volume-fill) 100%;
+  background-repeat: no-repeat;
+}
+
+input[type="range"]::after {
+  content: "";
+  display: block;
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: color-mix(in srgb, var(--color-sage) 50%, transparent);
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  height: 0;
+  width: 0;
+  visibility: hidden;
+}
+
+input[type="range"]::-webkit-slider-runnable-track {
+  -webkit-appearance: none;
+  box-shadow: none;
+  border: none;
+  background: transparent;
+}
