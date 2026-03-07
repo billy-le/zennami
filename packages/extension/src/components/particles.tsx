@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import "./particles.css"
 
 interface Particle {
   id: number;

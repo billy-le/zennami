@@ -1,0 +1,26 @@
+/**
+ * wave: was animating height (triggers layout reflow on ALL 40 bars per frame).
+ * Now uses scaleY with transform-origin: bottom — identical visual result,
+ * zero layout cost. The element's height is static; only the scale changes.
+ */
+@keyframes wave {
+  from {
+    transform: scaleY(var(--min-scale));
+  }
+  to {
+    transform: scaleY(var(--max-scale));
+  }
+}
+
+/**
+ * wave bars: transform-origin bottom so bars grow upward.
+ * will-change promotes each bar to its own compositing layer.
+ * With 40 bars this is intentional — scaleY on composited layers
+ * is far cheaper than height-driven reflow on un-promoted elements.
+ */
+.animate-wave {
+  will-change: transform;
+  transform-origin: bottom center;
+  animation: wave var(--spd) var(--dly) ease-in-out infinite alternate;
+}
+

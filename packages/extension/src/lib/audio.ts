@@ -1,40 +1,59 @@
-import { DEFAULT_PLAYER_STATE } from "@zennami/shared";
+import { DEFAULT_PLAYER_STATE } from "@/state/player";
 import { sendMessage } from "./messaging";
 
 const audioMap: Map<string, HTMLAudioElement> = new Map();
 
-export async function play({ source, url }: { source: "main"; url: string }) {
-  const exisiting = audioMap.get(source);
-  let internalVolume = exisiting?.volume ?? DEFAULT_PLAYER_STATE.volume;
+const sendIsBuffering = (buffering: boolean) => () => {
+  browser.runtime.sendMessage({ type: "SET_IS_BUFFERING", buffering });
+};
+export async function audioPlay({
+  source,
+  url,
+}: {
+  source: "main";
+  url: string | undefined;
+}) {
+  if (!url) return;
 
-  if (exisiting) {
-    exisiting.pause();
-    exisiting.src = "";
-    exisiting.removeAttribute("src");
-    exisiting.load();
-    audioMap.delete(source);
+  let audio = audioMap.get(source);
+
+  if (!audio) {
+    audio = new Audio();
+    audio.addEventListener("waiting", sendIsBuffering(true));
+    audio.addEventListener("canplay", sendIsBuffering(false));
+    audio.addEventListener("playing", sendIsBuffering(false));
+    audio.volume = DEFAULT_PLAYER_STATE.volume;
+    audioMap.set(source, audio);
   }
 
-  const audio = new Audio(url);
+  if (url === audio.src) {
+    try {
+      await audio.play();
+    } catch (err) {
+      sendMessage("log", err);
+    }
+    return;
+  }
 
-  audio.volume = internalVolume;
+  audio.pause();
+  audio.src = url;
   audio.load();
+
   try {
-    sendMessage("log", "[audio] playing audio");
     await audio.play();
-    audioMap.set(source, audio);
+    sendMessage("log", "[audio] playing audio");
   } catch (err) {
     sendMessage("log", err);
   }
 }
 
-export function pause() {
+export function audioPause() {
   for (const [, audio] of audioMap) {
     audio.pause();
   }
 }
 
-export function setVolume({
+export function audioSetVolume({
   source,
   volume,
 }: {
@@ -47,8 +66,16 @@ export function setVolume({
   }
 }
 
-export function toggleMute() {
+export function audioToggleMute() {
   for (const [, audio] of audioMap) {
     audio.muted = !audio.muted;
   }
+}
+
+export function isAudioPlaying() {
+  for (const [, audio] of audioMap) {
+    const isPlaying = !audio.paused && !audio.ended && audio.currentTime > 0;
+    if (isPlaying) return true;
+  }
+  return false;
 }

@@ -1,0 +1,76 @@
+/**
+ * orb-breathe: was animating box-shadow (forces repaint every frame).
+ * Now only animates transform — the glow is handled by .orb-glow::after
+ * which animates opacity instead (see below).
+ */
+@keyframes orb-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.03);
+  }
+}
+
+/**
+ * orb-glow-pulse: replaces the box-shadow animation in orb-breathe.
+ * Animating opacity on a pseudo-element is GPU-composited and paint-free.
+ */
+@keyframes orb-glow-pulse {
+  0%,
+  100% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes spin-slow {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin-slow {
+  will-change: transform;
+  animation: spin-slow 20s linear infinite;
+}
+
+/**
+ * Orb: the element itself only scales. The glow lives on ::after so
+ * its opacity can be animated without repainting the orb itself.
+ * Add class "orb-glow" alongside "animate-orb-breathe" on the orb element.
+ */
+.animate-orb-breathe {
+  will-change: transform;
+  animation: orb-breathe 4s ease-in-out infinite;
+}
+
+.orb-glow {
+  position: relative;
+  /* Static box-shadow — rendered once, never repainted */
+  box-shadow:
+    0 0 40px rgba(74, 103, 65, 0.3),
+    0 0 80px rgba(74, 103, 65, 0.1),
+    inset 0 0 30px rgba(0, 0, 0, 0.5);
+}
+
+.orb-glow::after {
+  content: "";
+  position: absolute;
+  inset: -20px;
+  border-radius: inherit;
+  /* Full-intensity glow on the pseudo-element; opacity animates it */
+  box-shadow:
+    0 0 55px rgba(74, 103, 65, 0.4),
+    0 0 100px rgba(74, 103, 65, 0.15);
+  will-change: opacity;
+  animation: orb-glow-pulse 4s ease-in-out infinite;
+  pointer-events: none;
+}
+

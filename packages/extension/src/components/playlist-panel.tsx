@@ -1,21 +1,21 @@
 import { useState } from "react";
 import { IoCloseSharp, IoPlaySharp } from 'react-icons/io5'
-import type { RadioStation, StationGroup } from "../types/radio-station";
 import { Waveform } from "./waveform";
+import { usePlayerState } from "@/state/player";
 
 const MOODS = ["focus", "sleep", "study", "morning", "rain"];
 
 interface PlaylistPanelProps {
-  isPlaying: boolean;
-  groupStations: StationGroup[]
   open: boolean;
   onClose: () => void;
-  activeTrackId?: string;
-  onSelectStation: (station: RadioStation) => void;
 }
 
-export function PlaylistPanel({ groupStations, isPlaying, open, onClose, activeTrackId, onSelectStation }: PlaylistPanelProps) {
+export function PlaylistPanel({ open, onClose }: PlaylistPanelProps) {
+  const isPlaying = usePlayerState(state => state.isPlaying)
+  const activeStationId = usePlayerState(state => state.currentStation?.stationuuid)
+  const setRadioStation = usePlayerState(state => state.setRadioStation)
   const [activeMood, setActiveMood] = useState("focus");
+  const { data: groupStations = [] } = useGroupStations()
 
   return (
     <div
@@ -42,23 +42,70 @@ export function PlaylistPanel({ groupStations, isPlaying, open, onClose, activeT
       {/* Track list */}
       <div className="flex flex-col gap-0.5 overflow-y-auto flex-1 scrollbar-thin">
         {groupStations.map((group) => {
+          const oneStation = group.variants.length === 1;
+          if (oneStation) {
+            const station = group.variants[0]!.station
+            const isActive = station.stationuuid === activeStationId;
+            const tags = station.tags.split(',')
+
+            return <div
+              key={station.stationuuid}
+              onClick={() => {
+                setRadioStation(station)
+                onClose()
+              }}
+              className={`flex px-3 py-2.5 rounded-lg cursor-pointer gap-3 transition-colors duration-150 ${isActive ? "bg-sage/25" : "hover:bg-sage/15"
+                }`}
+            >
+              <div className="flex-1 overflow-hidden">
+                <div className="flex items-center justify-between">
+                  <div
+                    className={`text-xl font-light italic whitespace-nowrap overflow-hidden text-ellipsis ${isActive ? "text-amber" : "text-cream"
+                      }`}
+                  >
+                    <span
+                      className={`mr-2 text-sm font-mono shrink-0 ${isActive ? "text-amber" : "text-fog"}`}
+                    >
+                      {isActive && <IoPlaySharp className="inline" />}
+                    </span>
+                    {station.name}
+                  </div>
+                  {isActive && <Waveform playing={isPlaying} />}
+                </div>
+                <div
+                  className="text-sm text-fog tracking-wide mt-0.5 line-clamp-2 font-mono"
+                >
+                  {tags.join(', ')}
+                </div>
+                <div
+                  className="font-mono text-xs text-fog shrink-0 mt-1"
+                >
+                  {station.codec}
+                  {' '}{station.bitrate != 0 ? `${station.bitrate}K` : ''}
+                </div>
+              </div>
+            </div>
+          }
+
+
           return <div key={group.brandName}>
             <h3 className="mt-5 text-amber text-xl line-clamp-1"><span className="font-mono text-sm">({group.variants.length})</span> {group.brandName}</h3>
             <ul>
               {group.variants.map((variant, i) => {
-                const isActive = variant.station.stationuuid === activeTrackId;
+                const isActive = variant.station.stationuuid === activeStationId;
                 const tags = variant.station.tags.split(',')
                 return (
                   <div
                     key={variant.station.stationuuid}
-                    onClick={() => onSelectStation(variant.station)}
+                    onClick={() => {
+                      setRadioStation(variant.station)
+                      onClose()
+                    }}
                     className={`flex px-3 py-2.5 rounded-lg cursor-pointer gap-3 transition-colors duration-150 ${isActive ? "bg-sage/25" : "hover:bg-sage/15"
                       }`}
                   >
-
                     <div className="flex-1 overflow-hidden">
                       <div className="flex items-center justify-between">
-
                         <div
                           className={`text-xl font-light italic whitespace-nowrap overflow-hidden text-ellipsis ${isActive ? "text-amber" : "text-cream"
                             }`}
@@ -83,15 +130,12 @@ export function PlaylistPanel({ groupStations, isPlaying, open, onClose, activeT
                         {variant.station.codec}
                         {' '}{variant.station.bitrate != 0 ? `${variant.station.bitrate}K` : ''}
                       </div>
-
                     </div>
                   </div>
-                );
-
+                )
               })}
             </ul>
           </div>
-
         })}
       </div>
 

@@ -11,9 +11,7 @@ export async function setupOffscreenDocument(path: PublicPath) {
     documentUrls: [offscreenUrl],
   });
 
-  if (existingContexts.length > 0) {
-    return;
-  }
+  if (existingContexts.length > 0) return;
 
   if (creating) {
     await creating;
@@ -29,4 +27,11 @@ export async function setupOffscreenDocument(path: PublicPath) {
     }
     creating = null;
   }
+}
+
+export async function hasOffscreenDocument() {
+  const existingContexts = await browser.runtime.getContexts({
+    contextTypes: [browser.runtime.ContextType.OFFSCREEN_DOCUMENT],
+  });
+  return existingContexts.length > 0;
 }

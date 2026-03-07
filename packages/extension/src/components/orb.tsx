@@ -1,3 +1,5 @@
+import './orb.css';
+
 export function Orb() {
   return (
     <div className="relative w-40 h-40 mb-7 shrink-0">

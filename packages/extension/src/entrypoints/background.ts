@@ -1,246 +1,192 @@
-import { apiClient } from "@/lib/api-client";
-import { play, pause, setVolume, toggleMute } from "@/lib/audio";
-import { isFirefox, setupOffscreenDocument } from "@/lib/helpers";
-import { onMessage } from "@/lib/messaging";
-
 import {
-  DEFAULT_PLAYER_STATE,
-  getAggregatedStations,
-  type PlayerState,
-  type StationGroup,
-} from "@zennami/shared";
+  audioPlay,
+  audioPause,
+  audioSetVolume,
+  audioToggleMute,
+  isAudioPlaying,
+} from "@/lib/audio";
+import {
+  hasOffscreenDocument,
+  isFirefox,
+  setupOffscreenDocument,
+} from "@/lib/helpers";
+import { onMessage, sendMessage } from "@/lib/messaging";
+import { STORAGE_KEY, usePlayerState } from "@/state/player";
+import { getAggregatedStations, type StationGroup } from "@zennami/shared";
 
 const CACHE_TTL = 1000 * 60 * 60; // 1 hour
 
 const memCache = new Map<string, { data: StationGroup[]; ts: number }>();
 
-let playerState: PlayerState = {
-  isPlaying: false,
-  currentStation: null,
-  volume: 1,
-};
-
-async function savePlayerState() {
-  await browser.storage.local.set({ playerState });
-}
-
-async function loadPlayerState(): Promise<PlayerState> {
-  const stored = await browser.storage.local.get<{ playerState: PlayerState }>(
-    "playerState",
-  );
-  return stored.playerState ?? DEFAULT_PLAYER_STATE;
-}
-
-async function getGroupStations(): Promise<StationGroup[]> {
-  const cacheKey = `group-stations`;
-  const mem = memCache.get(cacheKey);
-  if (mem && Date.now() - mem.ts < CACHE_TTL) return mem.data;
-
-  const stored =
-    await browser.storage.local.get<
-      Record<string, { data: StationGroup[]; ts: number }>
-    >(cacheKey);
-  const entry = stored[cacheKey];
-
-  if (entry && Date.now() - entry.ts < CACHE_TTL) {
-    console.log("[background] cache hit");
-    memCache.set(cacheKey, entry); // repopulate memory
-    return entry.data;
-  }
-
-  const data = await getAggregatedStations(); // network request happens here
-
-  const payload = { data, ts: Date.now() };
-  memCache.set(cacheKey, payload);
-  await browser.storage.local.set({ [cacheKey]: payload });
-  return data;
-}
-
-export default defineBackground(() => {
-  let isOffscreenReady = false;
-
-  loadPlayerState().then(async (state) => {
-    playerState = {
-      ...state,
-      isPlaying: false,
-    };
-
-    if (!isFirefox) {
-      console.log("[background] creating offscreen document");
-      await setupOffscreenDocument("./offscreen.html").then(() => {
-        console.log("[offscreen] offscreen ready");
-        isOffscreenReady = true;
-      });
-    }
-  });
-
-  async function playStation(stationUrl: string) {
-    if (isFirefox) {
-      await play({ source: "main", url: stationUrl });
-      playerState = {
-        ...playerState,
-        isPlaying: true,
-      };
-      await savePlayerState();
-      return;
-    }
-    if (!isOffscreenReady) return;
-    await browser.runtime.sendMessage({
-      type: "OFFSCREEN_PLAY",
-      url: stationUrl,
+export default defineBackground({
+  type: "module",
+  main: async () => {
+    // Pre-fetch on install
+    browser.runtime.onInstalled.addListener(async () => {
+      console.log("[background] pre-warming station cache...");
+      await getGroupStations().catch(console.error);
     });
-  }
 
-  async function switchStation(
-    direction: "next" | "prev",
-  ): Promise<PlayerState> {
-    const currentStation = playerState.currentStation;
-    if (!currentStation) return playerState;
+    // Pre-fetch on browser startup
+    browser.runtime.onStartup.addListener(async () => {
+      console.log("[background] pre-fetching station cache...");
+      await getGroupStations().catch(console.error);
+    });
 
-    const groups = await getGroupStations();
-    if (!groups.length) return playerState;
-    let stationIdx: number = 0;
-    const groupIndex = groups.findIndex((s) =>
-      s.variants.some((v, i) => {
-        if (v.station.stationuuid === currentStation.stationuuid) {
-          stationIdx = i;
-          return true;
+    browser.storage.onChanged.addListener(async (changes, area) => {
+      if (area === "local" && changes[STORAGE_KEY]) {
+        await usePlayerState.persist.rehydrate();
+      }
+    });
+
+    browser.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+      switch (message.type) {
+        case "SET_IS_BUFFERING": {
+          sendMessage("setIsBuffering", message.buffering);
+          sendResponse({ success: true });
+          return false;
         }
-        return false;
-      }),
-    );
-
-    const group = groups[groupIndex]!;
-    let stationVariant =
-      direction === "next"
-        ? group.variants[stationIdx + 1]
-        : group.variants[stationIdx - 1];
-    if (!stationVariant) {
-      const groupStationIndex =
-        direction === "next"
-          ? (groupIndex + 1) % groups.length
-          : (groupIndex - 1 + groups.length) % groups.length;
-      const groupStation = groups[groupStationIndex];
-      stationVariant =
-        direction === "next"
-          ? groupStation.variants.at(0)!
-          : groupStation.variants.at(-1)!;
-    }
-
-    playerState = {
-      ...playerState,
-      currentStation: stationVariant.station,
-    };
-
-    await savePlayerState();
-    if (playerState.isPlaying) {
-      await playStation(stationVariant.station.url_resolved);
-    }
-
-    return playerState;
-  }
-
-  // Pre-fetch on install
-  browser.runtime.onInstalled.addListener(async () => {
-    console.log("[background] pre-warming station cache...");
-    await getGroupStations().catch(console.error);
-  });
-
-  // Pre-fetch on browser startup
-  browser.runtime.onStartup.addListener(async () => {
-    console.log("[background] pre-fetching station cache...");
-    await getGroupStations().catch(console.error);
-  });
-
-  onMessage("getGroupStations", async () => {
-    return await getGroupStations();
-  });
-
-  onMessage("getNowPlaying", async ({ data }) => {
-    const res = await apiClient.api["now-playing"].$get({
-      query: { url: data.streamUrl },
+      }
     });
 
-    const json = await res.json();
-
-    if (!json.success) {
-      throw new Error(json.error);
+    async function getPlayerState() {
+      await usePlayerState.persist.rehydrate();
+      return usePlayerState.getState();
     }
 
-    return json;
-  });
+    async function getGroupStations(): Promise<StationGroup[]> {
+      const cacheKey = `group-stations`;
+      const mem = memCache.get(cacheKey);
+      if (mem && Date.now() - mem.ts < CACHE_TTL) return mem.data;
 
-  onMessage("getPlayerState", async () => {
-    if (playerState.currentStation) return playerState;
+      const stored =
+        await browser.storage.local.get<
+          Record<string, { data: StationGroup[]; ts: number }>
+        >(cacheKey);
+      const entry = stored[cacheKey];
 
-    const groupStations = await getGroupStations();
-    const firstStation = groupStations?.[0]?.variants?.[0]?.station ?? null;
+      if (entry && Date.now() - entry.ts < CACHE_TTL) {
+        console.log("[background] cache hit");
+        memCache.set(cacheKey, entry); // repopulate memory
+        return entry.data;
+      }
 
-    playerState = {
-      ...playerState,
-      currentStation: firstStation,
-    };
+      const data = await getAggregatedStations(); // network request happens here
 
-    await savePlayerState();
-    return playerState;
-  });
-
-  onMessage("playStation", async ({ data }) => {
-    playerState = {
-      ...playerState,
-      isPlaying: true,
-      currentStation: data.station,
-    };
-
-    await savePlayerState();
-    return await playStation(data.station.url_resolved);
-  });
-
-  onMessage("pauseStation", async () => {
-    playerState = {
-      ...playerState,
-      isPlaying: false,
-    };
-    await savePlayerState();
-    if (isFirefox) {
-      return pause();
+      const payload = { data, ts: Date.now() };
+      memCache.set(cacheKey, payload);
+      await browser.storage.local.set({ [cacheKey]: payload });
+      return data;
     }
-    if (!isOffscreenReady) return;
-    return await browser.runtime.sendMessage({
-      type: "OFFSCREEN_PAUSE",
+
+    const waitForOffscreen = new Promise<void>((resolve) => {
+      const listener = (msg: { type: "OFFSCREEN_READY" }) => {
+        if (msg.type === "OFFSCREEN_READY") {
+          console.log("[background] Handshake received!");
+          browser.runtime.onMessage.removeListener(listener);
+          resolve();
+        }
+      };
+      browser.runtime.onMessage.addListener(listener);
     });
-  });
 
-  onMessage("setVolume", async ({ data }) => {
-    playerState = {
-      ...playerState,
-      volume: data.volume,
-    };
-    await savePlayerState();
-    if (isFirefox) {
-      return setVolume({ source: "main", volume: data.volume });
+    async function loadOffscreenDocument() {
+      await setupOffscreenDocument("./offscreen.html");
+      await waitForOffscreen;
     }
-    if (!isOffscreenReady) return;
-    return await browser.runtime.sendMessage({
-      type: "OFFSCREEN_VOLUME",
-      volume: data.volume,
-    });
-  });
 
-  onMessage("nextStation", async () => switchStation("next"));
-  onMessage("prevStation", async () => switchStation("prev"));
-  onMessage("toggleMute", async () => {
-    if (isFirefox) {
-      return toggleMute();
-    }
-    if (!isOffscreenReady) return;
-    return await browser.runtime.sendMessage({
-      type: "OFFSCREEN_TOGGLE_MUTE",
+    onMessage("getIsAudioPlaying", async () => {
+      if (isFirefox) {
+        return isAudioPlaying();
+      }
+      if (!(await hasOffscreenDocument())) {
+        await loadOffscreenDocument();
+      }
+      const { isPlaying } = await browser.runtime.sendMessage({
+        type: "OFFSCREEN_IS_AUDIO_PLAYING",
+      });
+      return isPlaying;
     });
-  });
 
-  onMessage("log", async ({ data }) => {
-    console.log(data);
-    return;
-  });
+    onMessage("getGroupStations", async () => {
+      return await getGroupStations();
+    });
+
+    onMessage("playRadioStation", async () => {
+      const state = await getPlayerState();
+      if (!state.currentStation) return;
+      if (isFirefox) {
+        await audioPlay({
+          source: "main",
+          url: state.currentStation.url_resolved,
+        });
+        return;
+      }
+      if (!(await hasOffscreenDocument())) {
+        await loadOffscreenDocument();
+      }
+      await browser.runtime.sendMessage({
+        type: "OFFSCREEN_PLAY",
+        url: state.currentStation.url_resolved,
+      });
+    });
+
+    onMessage("togglePlayPause", async () => {
+      const state = await getPlayerState();
+
+      if (isFirefox) {
+        state.isPlaying
+          ? await audioPlay({
+              source: "main",
+              url: state.currentStation?.url_resolved,
+            })
+          : audioPause();
+        return;
+      }
+
+      if (!(await hasOffscreenDocument())) {
+        await loadOffscreenDocument();
+      }
+
+      await browser.runtime.sendMessage({
+        type: state.isPlaying ? "OFFSCREEN_PLAY" : "OFFSCREEN_PAUSE",
+        url: state.currentStation?.url_resolved,
+      });
+    });
+
+    onMessage("setVolume", async () => {
+      const state = await getPlayerState();
+
+      if (isFirefox) {
+        audioSetVolume({ source: "main", volume: state.volume });
+        return;
+      }
+
+      if (!(await hasOffscreenDocument())) {
+        await loadOffscreenDocument();
+      }
+      await browser.runtime.sendMessage({
+        type: "OFFSCREEN_SET_VOLUME",
+        volume: state.volume,
+      });
+    });
+
+    onMessage("toggleMute", async () => {
+      if (isFirefox) {
+        audioToggleMute();
+        return;
+      }
+      if (!(await hasOffscreenDocument())) {
+        await loadOffscreenDocument();
+      }
+      await browser.runtime.sendMessage({
+        type: "OFFSCREEN_TOGGLE_MUTE",
+      });
+    });
+
+    onMessage("log", async ({ data }) => {
+      console.log(data);
+      return;
+    });
+  },
 });

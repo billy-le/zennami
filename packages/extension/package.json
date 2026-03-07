@@ -12,7 +12,9 @@
     "@tanstack/react-query": "^5.90.21",
     "@webext-core/messaging": "^2.3.0",
     "@zennami/shared": "workspace:*",
-    "hono": "^4.12.3"
+    "hono": "^4.12.3",
+    "react-icons": "^5.5.0",
+    "zustand": "^5.0.11"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.2.1",
